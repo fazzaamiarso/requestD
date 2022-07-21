@@ -1,6 +1,5 @@
 import NextAuth, { type NextAuthOptions } from "next-auth";
-import DiscordProvider from "next-auth/providers/discord";
-import CredentialsProvider from "next-auth/providers/credentials";
+import SpotifyProvider from "next-auth/providers/spotify";
 
 // Prisma adapter for NextAuth, optional and can be removed
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
@@ -10,9 +9,15 @@ import { env } from "../../../server/env.mjs";
 export const authOptions: NextAuthOptions = {
   // Include user.id on session
   callbacks: {
+    async jwt({ token, account }) {
+      if (account) {
+        token.accessToken = account.refresh_token;
+      }
+      return token;
+    },
     session({ session, user }) {
       if (session.user) {
-        session.user.id = user.id;
+        session.user = user;
       }
       return session;
     },
@@ -20,24 +25,9 @@ export const authOptions: NextAuthOptions = {
   // Configure one or more authentication providers
   adapter: PrismaAdapter(prisma),
   providers: [
-    DiscordProvider({
-      clientId: env.DISCORD_CLIENT_ID,
-      clientSecret: env.DISCORD_CLIENT_SECRET,
-    }),
-    // ...add more providers here
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        name: {
-          label: "Name",
-          type: "text",
-          placeholder: "Enter your name",
-        },
-      },
-      async authorize(credentials, _req) {
-        const user = { id: 1, name: credentials?.name ?? "J Smith" };
-        return user;
-      },
+    SpotifyProvider({
+      clientId: env.SPOTIFY_CLIENT_ID,
+      clientSecret: env.SPOTIFY_CLIENT_SECRET,
     }),
   ],
 };
