@@ -1,4 +1,4 @@
-import NextAuth, { type NextAuthOptions } from "next-auth";
+import NextAuth, { type NextAuthOptions, DefaultSession } from "next-auth";
 import SpotifyProvider from "next-auth/providers/spotify";
 
 // Prisma adapter for NextAuth, optional and can be removed
@@ -7,18 +7,16 @@ import { prisma } from "../../../server/db/client";
 import { env } from "../../../server/env.mjs";
 
 export const authOptions: NextAuthOptions = {
-  // Include user.id on session
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
-        token.accessToken = account.refresh_token;
+        token.access_token = account?.refresh_token;
       }
       return token;
     },
-    session({ session, user }) {
-      if (session.user) {
-        session.user = user;
-      }
+    session({ session, token }) {
+      session.access_token = token.access_token;
+
       return session;
     },
   },
@@ -26,10 +24,21 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     SpotifyProvider({
+      authorization: `https://accounts.spotify.com/authorize?scope=user-read-email playlist-modify-public`,
       clientId: env.SPOTIFY_CLIENT_ID,
       clientSecret: env.SPOTIFY_CLIENT_SECRET,
     }),
   ],
+  session: {
+    strategy: "jwt",
+  },
 };
 
 export default NextAuth(authOptions);
+
+declare module "next-auth" {
+  interface Session {
+    expires: DefaultSession["expires"];
+    access_token: string;
+  }
+}
