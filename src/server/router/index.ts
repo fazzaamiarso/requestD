@@ -2,7 +2,11 @@
 import { createRouter } from "./context";
 import superjson from "superjson";
 import submissionRouter from "./submission";
-import { getUsersPlaylists } from "../../lib/spotify";
+import {
+  createPlaylist,
+  getMyProfile,
+  getUsersPlaylists,
+} from "../../lib/spotify";
 import { z } from "zod";
 
 const myPlaylistSchema = z.object({
@@ -27,6 +31,19 @@ export const appRouter = createRouter()
       );
       const res = (await response.json()) as SpotifyPlaylist;
       return { items: res.items };
+    },
+  })
+  .mutation("createPlaylist", {
+    input: z.object({
+      title: z.string(),
+    }),
+    async resolve({ ctx, input }) {
+      const data = await createPlaylist(
+        ctx.session?.access_token as string,
+        input.title
+      );
+
+      return data;
     },
   });
 

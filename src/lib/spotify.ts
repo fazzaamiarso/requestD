@@ -3,8 +3,11 @@ import { env } from "../server/env.mjs";
 const client_id = env.SPOTIFY_CLIENT_ID;
 const client_secret = env.SPOTIFY_CLIENT_SECRET;
 const basic = Buffer.from(`${client_id}:${client_secret}`).toString("base64");
+
 const TOKEN_ENDPOINT = `https://accounts.spotify.com/api/token`;
-const PLAYLISTS_ENDPOINT = "https://api.spotify.com/v1/me/playlists";
+const BASE_ENDPOINT = "https://api.spotify.com/v1";
+const PLAYLISTS_ENDPOINT = `${BASE_ENDPOINT}/me/playlists`;
+const MY_PROFILE_ENDPOINT = `${BASE_ENDPOINT}/me`;
 
 const getAccessToken = async (refresh_token: string) => {
   const response = await fetch(TOKEN_ENDPOINT, {
@@ -30,4 +33,29 @@ const getUsersPlaylists = async (refresh_token: string) => {
     },
   });
 };
-export { getAccessToken, getUsersPlaylists };
+
+const getMyProfile = async (refresh_token: string) => {
+  const { access_token } = await getAccessToken(refresh_token);
+  const res = await fetch(MY_PROFILE_ENDPOINT, {
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+    },
+  });
+  return res.json();
+};
+
+const createPlaylist = async (refresh_token: string, title: string) => {
+  const { access_token } = await getAccessToken(refresh_token);
+  const user = await getMyProfile(refresh_token);
+  return fetch(`${BASE_ENDPOINT}/users/${user.id}/playlists`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: title,
+    }),
+  });
+};
+export { getAccessToken, getUsersPlaylists, getMyProfile, createPlaylist };
