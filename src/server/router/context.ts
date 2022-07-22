@@ -29,3 +29,17 @@ export const createContext = async (
 type Context = trpc.inferAsyncReturnType<typeof createContext>;
 
 export const createRouter = () => trpc.router<Context>();
+export const createProtectedRouter = () =>
+  createRouter().middleware(({ ctx, next }) => {
+    if (!ctx.session || !ctx.session?.user?.id || !ctx.session.access_token)
+      throw Error("Session and token must be set to access this route");
+    return next({
+      ctx: {
+        ...ctx,
+        session: {
+          ...ctx.session,
+          user: { ...ctx.session.user, id: ctx.session.user.id },
+        },
+      },
+    });
+  });
