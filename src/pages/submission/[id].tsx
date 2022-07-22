@@ -3,6 +3,7 @@ import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { trpc } from "../../utils/trpc";
 import { prisma } from "../../server/db/client";
+import { createRedirect } from "../../utils/server-helper";
 
 export const getServerSideProps = async ({
   params,
@@ -17,12 +18,7 @@ export const getServerSideProps = async ({
 
   const isSubmissionOwner = session?.user?.id === submission?.userId;
   if (isSubmissionOwner)
-    return {
-      redirect: {
-        destination: `/me/${id}`,
-        permanetnt: false,
-      },
-    };
+    return createRedirect(`/me/${id}`);
 
   return { props: {} };
 };

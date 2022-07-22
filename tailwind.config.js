@@ -3,7 +3,14 @@
 module.exports = {
   content: ["./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        darkBg: "#121212",
+        cardBg: "#1f1f1e",
+        textHeading: "#e2e3e3",
+        textBody: "#a4a4a5",
+      },
+    },
   },
   plugins: [],
 };

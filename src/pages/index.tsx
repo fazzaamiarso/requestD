@@ -9,14 +9,12 @@ const Home: NextPage = () => {
       <Head>
         <title>Spotify-ngl</title>
       </Head>
-      <main className="container mx-auto flex flex-col items-center justify-center h-screen p-4">
+      <main className="container mx-auto flex h-screen flex-col items-center justify-center p-4">
         <h1>Landing Page</h1>
-
-        <div>{session?.user?.email}</div>
         <div>
           <>
             {!session?.user && (
-              <button onClick={() => signIn(undefined, { callbackUrl: "/me" })}>
+              <button onClick={() => signIn("spotify", { callbackUrl: "/me" })}>
                 Login
               </button>
             )}
