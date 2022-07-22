@@ -1,8 +1,33 @@
 import { z } from "zod";
-import { createPlaylist, getPlaylistDetail } from "../../lib/spotify";
+import {
+  createPlaylist,
+  getPlaylistDetail,
+  getUsersPlaylists,
+} from "../../lib/spotify";
 import { createRouter } from "./context";
 
 const submissionRouter = createRouter()
+  .query("all", {
+    async resolve({ ctx }) {
+      if (!ctx.session?.user?.id) throw Error("Must have a session");
+      const submission = await ctx.prisma.submission.findMany({
+        where: { userId: ctx.session?.user?.id },
+        select: { spotifyPlaylistId: true, id: true },
+      });
+      const playlists = await Promise.all(
+        submission.map(async (s) => {
+          const res = await getPlaylistDetail(
+            ctx.session?.access_token as string,
+            s.spotifyPlaylistId
+          );
+          return { submissionId: s.id, playlist: await res.json() };
+        })
+      );
+      return {
+        playlists,
+      };
+    },
+  })
   .query("detail", {
     input: z.object({ submissionId: z.string() }),
     async resolve({ ctx, input }) {
@@ -23,6 +48,7 @@ const submissionRouter = createRouter()
       title: z.string(),
     }),
     async resolve({ ctx, input }) {
+      if (!ctx.session?.user?.id) throw Error("Must have a session");
       const data = await createPlaylist(
         ctx.session?.access_token as string,
         input.title
@@ -31,6 +57,7 @@ const submissionRouter = createRouter()
 
       const submission = await ctx.prisma.submission.create({
         data: {
+          userId: ctx.session?.user?.id,
           spotifyPlaylistId: response.id as string,
         },
       });

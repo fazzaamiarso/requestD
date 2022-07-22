@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 const AdminDashboard = () => {
-  const { data, isLoading } = trpc.useQuery(["playlist"]);
+  const { data, isLoading } = trpc.useQuery(["submission.all"]);
 
   return (
     <>
@@ -12,18 +12,21 @@ const AdminDashboard = () => {
         <ul>
           {!isLoading &&
             data &&
-            data.items.map((item) => {
+            data.playlists.map(({ playlist, submissionId }) => {
               return (
-                <li key={item.id}>
-                  {item.images.length > 0 && (
+                <li key={playlist.id}>
+                  {playlist.images.length > 0 && (
                     <Image
-                      src={item.images[0].url}
-                      alt={item.name}
+                      src={playlist.images[0].url}
+                      alt={playlist.name}
                       width={50}
                       height={50}
                     />
                   )}
-                  {item.name}
+                  {playlist.name}
+                  <Link href={`/me/${submissionId}`}>
+                    <a className="text-blue-500 hover:underline">Go to live</a>
+                  </Link>
                 </li>
               );
             })}

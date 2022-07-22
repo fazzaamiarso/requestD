@@ -8,15 +8,18 @@ import { env } from "../../../server/env.mjs";
 
 export const authOptions: NextAuthOptions = {
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, user }) {
+      if (user) {
+        token.user = user;
+      }
       if (account) {
         token.access_token = account?.refresh_token;
       }
       return token;
     },
     session({ session, token }) {
+      session.user = token.user as any;
       session.access_token = token.access_token;
-
       return session;
     },
   },

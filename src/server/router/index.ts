@@ -19,17 +19,7 @@ type SpotifyPlaylist = z.infer<typeof myPlaylistSchema>;
 
 export const appRouter = createRouter()
   .transformer(superjson)
-  .merge("submission.", submissionRouter)
-  .query("playlist", {
-    async resolve({ ctx }) {
-      const response = await getUsersPlaylists(
-        ctx.session?.access_token as string
-      );
-      const res = await response.json();
-      const playlists = myPlaylistSchema.parse(res);
-      return { items: playlists.items };
-    },
-  });
+  .merge("submission.", submissionRouter);
  
 
 // export type definition of API

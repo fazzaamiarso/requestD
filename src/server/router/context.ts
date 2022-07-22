@@ -15,11 +15,14 @@ export const createContext = async (
   const session =
     req && res && (await getServerSession(req, res, nextAuthOptions));
 
+  const submissionToken = req?.cookies["submission-token"];
+  if (!submissionToken) throw Error("Submission Token must be set");
   return {
     req,
     res,
     session,
     prisma,
+    submissionToken,
   };
 };
 
