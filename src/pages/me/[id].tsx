@@ -11,9 +11,10 @@ const OwnerSubmission = () => {
   if (!data) {
     return <p>No submission with this id</p>;
   }
+
   return (
     <main>
-      <h1 className="font-bold text-3xl">{data.playlist.name}</h1>
+      <h1 className="text-3xl font-bold">{data.playlist.name}</h1>
     </main>
   );
 };

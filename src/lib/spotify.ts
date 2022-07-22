@@ -38,6 +38,23 @@ const profileSchema = z.object({
   images: z.array(imageSchema),
 });
 
+const trackSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  images: z.array(imageSchema),
+  artists: z.array(
+    z.object({
+      name: z.string(),
+      id: z.string(),
+    })
+  ),
+});
+const searchTracksSchema = z.object({
+  tracks: z.object({
+    items: z.array(trackSchema),
+  }),
+});
+
 const getAccessToken = async (refresh_token: string) => {
   const response = await fetch(TOKEN_ENDPOINT, {
     method: "POST",
@@ -48,6 +65,21 @@ const getAccessToken = async (refresh_token: string) => {
     body: new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token,
+    }),
+  });
+
+  return response.json();
+};
+
+const getPublicAccessToken = async () => {
+  const response = await fetch(TOKEN_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
     }),
   });
 
@@ -106,10 +138,32 @@ const getPlaylistDetail = async (refresh_token: string, playlistId: string) => {
   return playlistDetail;
 };
 
+const searchTracks = async (searchQuery: string) => {
+  const { access_token } = await getPublicAccessToken();
+  const res = await fetch(
+    `${BASE_ENDPOINT}/search?${new URLSearchParams({
+      q: searchQuery,
+      type: "track",
+    })}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  const results = searchTracksSchema.parse(await res.json());
+
+  return results;
+};
+
 export {
   getAccessToken,
+  getPublicAccessToken,
   getUsersPlaylists,
   getMyProfile,
   createPlaylist,
   getPlaylistDetail,
+  searchTracks,
 };
