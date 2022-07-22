@@ -13,7 +13,17 @@ datasource db {
 }
 
 model Submission {
-    id String @id @default(cuid())
+    id                String           @id @default(cuid())
+    spotifyPlaylistId String
+    maxTrackLimit     Int              @default(0)
+    requestedTracksId RequestedTrack[]
+}
+
+model RequestedTrack {
+    id           String     @id @default(cuid())
+    spotifyId    String
+    submissionId String
+    submission   Submission @relation(fields: [submissionId], references: [id])
 }
 
 // Necessary for Next auth
@@ -28,7 +38,7 @@ model Account {
     expires_at        Int?
     token_type        String?
     scope             String?
-    id_token          String?   @db.Text
+    id_token          String? @db.Text
     session_state     String?
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 

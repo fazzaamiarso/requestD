@@ -1,7 +1,7 @@
 import { trpc } from "../../utils/trpc";
 
 const NewSubmission = () => {
-  const mutation = trpc.useMutation("createPlaylist");
+  const mutation = trpc.useMutation("submission.create");
   return (
     <main>
       <form
@@ -14,7 +14,7 @@ const NewSubmission = () => {
             { title },
             {
               onSuccess(data, variables, context) {
-                window.location.replace("/");
+                window.location.replace(`/me/${data.submissionId}`);
               },
             }
           );

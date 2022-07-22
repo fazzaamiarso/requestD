@@ -58,4 +58,22 @@ const createPlaylist = async (refresh_token: string, title: string) => {
     }),
   });
 };
-export { getAccessToken, getUsersPlaylists, getMyProfile, createPlaylist };
+
+const getPlaylistDetail = async (refresh_token: string, playlistId: string) => {
+  const { access_token } = await getAccessToken(refresh_token);
+  return fetch(`${BASE_ENDPOINT}/playlists/${playlistId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      "Content-Type": "application/json",
+    },
+  });
+};
+
+export {
+  getAccessToken,
+  getUsersPlaylists,
+  getMyProfile,
+  createPlaylist,
+  getPlaylistDetail,
+};
