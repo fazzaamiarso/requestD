@@ -41,6 +41,7 @@ const profileSchema = z.object({
 const trackSchema = z.object({
   id: z.string(),
   name: z.string(),
+  uri: z.string(),
   album: z.object({ images: z.array(imageSchema) }),
   artists: z.array(
     z.object({
@@ -176,6 +177,46 @@ const getSeveralTracks = async (spotifyIds: string[]) => {
   return tracks.tracks;
 };
 
+const getTrack = async (spotifyId: string) => {
+  const { access_token } = await getPublicAccessToken();
+
+  const res = await fetch(`${BASE_ENDPOINT}/tracks/${spotifyId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const track = trackSchema.parse(await res.json());
+  return track;
+};
+
+const addTracksToPlaylist = async (
+  refresh_token: string,
+  data: { playlistId: string; tracksURI: string[] }
+) => {
+  const { access_token } = await getAccessToken(refresh_token);
+  const res = await fetch(
+    `${BASE_ENDPOINT}/playlists/${data.playlistId}/tracks`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        uris: data.tracksURI,
+      }),
+    }
+  );
+  const result = z
+    .object({
+      snapshot_id: z.string(),
+    })
+    .parse(await res.json());
+  return result;
+};
+
 export {
   getUsersPlaylists,
   getMyProfile,
@@ -183,4 +224,6 @@ export {
   getPlaylistDetail,
   searchTracks,
   getSeveralTracks,
+  getTrack,
+  addTracksToPlaylist,
 };

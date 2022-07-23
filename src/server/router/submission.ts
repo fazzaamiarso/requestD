@@ -1,8 +1,9 @@
 import { z } from "zod";
 import {
+  addTracksToPlaylist,
   createPlaylist,
   getPlaylistDetail,
-  getSeveralTracks,
+  getTrack,
 } from "../../lib/spotify";
 import { createProtectedRouter } from "./context";
 
@@ -46,11 +47,14 @@ const submissionRouter = createProtectedRouter()
     async resolve({ ctx, input }) {
       const requestedTracks = await ctx.prisma.requestedTrack.findMany({
         where: { submissionId: input.submissionId },
-        select: { spotifyId: true },
+        select: { spotifyId: true, id: true },
       });
-      const trackIds = requestedTracks.map((track) => track.spotifyId);
-      const tracks = await getSeveralTracks(trackIds);
-
+      const tracks = await Promise.all(
+        requestedTracks.map(async (track) => {
+          const trackData = await getTrack(track.spotifyId);
+          return { ...trackData, requestId: track.id };
+        })
+      );
       return { tracks };
     },
   })
@@ -71,6 +75,27 @@ const submissionRouter = createProtectedRouter()
         },
       });
       return { submissionId: submission.id };
+    },
+  })
+  .mutation("add-to-playlist", {
+    input: z.object({
+      playlistId: z.string(),
+      tracksData: z.array(
+        z.object({
+          uri: z.string(),
+          requestId: z.string(),
+        })
+      ),
+    }),
+    async resolve({ ctx, input }) {
+      const tracksURI = input.tracksData.map((track) => track.uri);
+      const requestIds = input.tracksData.map((track) => track.requestId);
+      await addTracksToPlaylist(ctx.session.access_token, {
+        playlistId: input.playlistId,
+        tracksURI,
+      });
+
+      return null;
     },
   });
 
