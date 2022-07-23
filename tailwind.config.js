@@ -9,8 +9,9 @@ module.exports = {
         cardBg: "#1f1f1e",
         textHeading: "#e2e3e3",
         textBody: "#a4a4a5",
+        inputBg: "#2f2f2f",
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/forms")],
 };
