@@ -12,7 +12,7 @@ const submissionRouter = createProtectedRouter()
     async resolve({ ctx }) {
       const submission = await ctx.prisma.submission.findMany({
         where: { userId: ctx.session.user.id },
-        select: { spotifyPlaylistId: true, id: true },
+        select: { spotifyPlaylistId: true, id: true, createdAt: true },
       });
       const playlists = await Promise.all(
         submission.map(async (s) => {
@@ -20,7 +20,11 @@ const submissionRouter = createProtectedRouter()
             ctx.session.access_token,
             s.spotifyPlaylistId
           );
-          return { submissionId: s.id, playlist: playlistDetail };
+          return {
+            submissionId: s.id,
+            createdAt: s.createdAt,
+            playlist: playlistDetail,
+          };
         })
       );
       return {
@@ -46,7 +50,7 @@ const submissionRouter = createProtectedRouter()
     input: z.object({ submissionId: z.string() }),
     async resolve({ ctx, input }) {
       const requestedTracks = await ctx.prisma.requestedTrack.findMany({
-        where: { submissionId: input.submissionId },
+        where: { submissionId: input.submissionId, status: "PENDING" },
         select: { spotifyId: true, id: true },
       });
       const tracks = await Promise.all(
@@ -94,7 +98,24 @@ const submissionRouter = createProtectedRouter()
         playlistId: input.playlistId,
         tracksURI,
       });
+      await ctx.prisma.requestedTrack.updateMany({
+        where: { id: { in: requestIds } },
+        data: {
+          status: "ACCEPTED",
+        },
+      });
 
+      return null;
+    },
+  })
+  .mutation("delete", {
+    input: z.object({
+      requestId: z.string(),
+    }),
+    async resolve({ ctx, input }) {
+      await ctx.prisma.requestedTrack.delete({
+        where: { id: input.requestId },
+      });
       return null;
     },
   });

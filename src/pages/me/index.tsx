@@ -42,13 +42,16 @@ const AdminDashboard = () => {
           {isLoading && <p>Loading submissions...</p>}
           {!isLoading &&
             data &&
-            data.playlists.map(({ playlist, submissionId }) => {
+            data.playlists.map(({ playlist, submissionId, createdAt }) => {
               return (
                 <li
                   key={playlist.id}
                   className="flex w-max min-w-[20rem] flex-col rounded-md bg-cardBg p-4 px-6"
                 >
                   <h2 className="text-xl font-semibold">{playlist.name}</h2>
+                  <p className="text-sm text-textBody">
+                    {createdAt.toDateString()}
+                  </p>
                   <div className="ml-auto mt-12 flex items-center gap-4">
                     <button
                       onClick={() =>

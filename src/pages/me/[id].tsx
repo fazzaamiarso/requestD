@@ -11,6 +11,8 @@ const copyToClipboard = (content: string) => {
 const OwnerSubmission = () => {
   const router = useRouter();
   const { id } = router.query;
+
+  const utils = trpc.useContext();
   const { data } = trpc.useQuery([
     "submission.detail",
     { submissionId: id as string },
@@ -22,6 +24,7 @@ const OwnerSubmission = () => {
   ]);
 
   const mutation = trpc.useMutation(["submission.add-to-playlist"]);
+  const deleteRequest = trpc.useMutation(["submission.delete"]);
 
   if (!data) {
     return <p>No submission with this id</p>;
@@ -32,8 +35,8 @@ const OwnerSubmission = () => {
       <Head>
         <title>Spotify - NGL | {id}</title>
       </Head>
-      <header className="mx-auto flex w-11/12">
-        <h1 className="text-3xl font-bold">{data.playlist.name}</h1>
+      <header className="mx-auto mt-6 flex w-11/12 items-center">
+        <h1 className="mr-6 text-3xl font-bold">{data.playlist.name}</h1>
         <button
           onClick={() => copyToClipboard(`${location.origin}/submission/${id}`)}
           className=""
@@ -41,7 +44,8 @@ const OwnerSubmission = () => {
           <DuplicateIcon className="h-8" />
         </button>
       </header>
-      <main className="mx-auto w-11/12">
+      <main className="mx-auto mt-12 w-11/12">
+        <h2 className="mb-4 text-xl font-bold">Pending Requests</h2>
         <ul className="my-8 space-y-4">
           {trackData &&
             trackData.tracks.map((track) => {
@@ -59,30 +63,45 @@ const OwnerSubmission = () => {
                     />
                   )}
                   <div className="ml-6">
-                    <h2 className="text-lg font-semibold">{track.name}</h2>
-                    <h3 className="text-sm text-textBody">
-                      {" "}
+                    <h3 className="text-lg font-semibold">{track.name}</h3>
+                    <h4 className="text-sm text-textBody">
                       {track.artists[0]?.name}
-                    </h3>
+                    </h4>
                   </div>
                   <div className="ml-auto flex items-center gap-4">
                     <button
                       onClick={() => {
-                        mutation.mutate({
-                          playlistId: data.playlist.id,
-                          tracksData: [
-                            {
-                              requestId: track.requestId,
-                              uri: track.uri,
-                            },
-                          ],
-                        });
+                        mutation.mutate(
+                          {
+                            playlistId: data.playlist.id,
+                            tracksData: [
+                              {
+                                requestId: track.requestId,
+                                uri: track.uri,
+                              },
+                            ],
+                          },
+                          {
+                            onSuccess: () =>
+                              utils.invalidateQueries(["submission.tracks"]),
+                          }
+                        );
                       }}
                     >
                       <CheckIcon className="h-6 text-green-400" />
                       <span className="sr-only">Accept song request</span>
                     </button>
-                    <button onClick={() => {}}>
+                    <button
+                      onClick={() => {
+                        deleteRequest.mutate(
+                          { requestId: track.requestId },
+                          {
+                            onSuccess: () =>
+                              utils.invalidateQueries(["submission.tracks"]),
+                          }
+                        );
+                      }}
+                    >
                       <XIcon className="h-6 text-red-400" />
                       <span className="sr-only">Reject song request</span>
                     </button>
