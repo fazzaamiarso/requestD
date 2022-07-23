@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { createPlaylist, getPlaylistDetail } from "../../lib/spotify";
+import {
+  createPlaylist,
+  getPlaylistDetail,
+  getSeveralTracks,
+} from "../../lib/spotify";
 import { createProtectedRouter } from "./context";
 
 const submissionRouter = createProtectedRouter()
@@ -35,6 +39,19 @@ const submissionRouter = createProtectedRouter()
         submission.spotifyPlaylistId
       );
       return { submission, playlist };
+    },
+  })
+  .query("tracks", {
+    input: z.object({ submissionId: z.string() }),
+    async resolve({ ctx, input }) {
+      const requestedTracks = await ctx.prisma.requestedTrack.findMany({
+        where: { submissionId: input.submissionId },
+        select: { spotifyId: true },
+      });
+      const trackIds = requestedTracks.map((track) => track.spotifyId);
+      const tracks = await getSeveralTracks(trackIds);
+
+      return { tracks };
     },
   })
   .mutation("create", {

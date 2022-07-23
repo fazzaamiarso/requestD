@@ -2,23 +2,13 @@
 import { createRouter } from "./context";
 import superjson from "superjson";
 import submissionRouter from "./submission";
-import { z } from "zod";
-import { searchTracks } from "../../lib/spotify";
+import requestRouter from "./request";
 
 export const appRouter = createRouter()
   .transformer(superjson)
   .merge("submission.", submissionRouter)
-  .mutation("search", {
-    input: z.object({
-      searchQuery: z.string(),
-    }),
-    async resolve({ ctx, input }) {
-      const search = await searchTracks(input.searchQuery);
-      const res = search.tracks.items;
-
-      return res;
-    },
-  });
+  .merge("request.", requestRouter);
+ 
  
 
 // export type definition of API

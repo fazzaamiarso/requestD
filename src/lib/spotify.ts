@@ -41,7 +41,7 @@ const profileSchema = z.object({
 const trackSchema = z.object({
   id: z.string(),
   name: z.string(),
-  images: z.array(imageSchema),
+  album: z.object({ images: z.array(imageSchema) }),
   artists: z.array(
     z.object({
       name: z.string(),
@@ -138,32 +138,49 @@ const getPlaylistDetail = async (refresh_token: string, playlistId: string) => {
   return playlistDetail;
 };
 
-const searchTracks = async (searchQuery: string) => {
+const searchTracks = async (q: string) => {
   const { access_token } = await getPublicAccessToken();
-  const res = await fetch(
-    `${BASE_ENDPOINT}/search?${new URLSearchParams({
-      q: searchQuery,
-      type: "track",
-    })}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
+  const searchQuery = new URLSearchParams({
+    q,
+    type: "track",
+  });
+  const res = await fetch(`${BASE_ENDPOINT}/search?${searchQuery}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      "Content-Type": "application/json",
+    },
+  });
   const results = searchTracksSchema.parse(await res.json());
-
   return results;
 };
 
+const formatArrToCSV = (arr: (string | number)[]) => {
+  return arr.join(",");
+};
+const getSeveralTracks = async (spotifyIds: string[]) => {
+  const { access_token } = await getPublicAccessToken();
+  const trackIds = formatArrToCSV(spotifyIds);
+  const searchQuery = new URLSearchParams({ ids: trackIds });
+
+  const res = await fetch(`${BASE_ENDPOINT}/tracks?${searchQuery}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const tracks = z
+    .object({ tracks: z.array(trackSchema) })
+    .parse(await res.json());
+  return tracks.tracks;
+};
+
 export {
-  getAccessToken,
-  getPublicAccessToken,
   getUsersPlaylists,
   getMyProfile,
   createPlaylist,
   getPlaylistDetail,
   searchTracks,
+  getSeveralTracks,
 };

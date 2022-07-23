@@ -26,8 +26,8 @@ export const getServerSideProps = async ({
 const Submission = () => {
   const router = useRouter();
   const { id } = router.query;
-  const mutation = trpc.useMutation(["search"]);
-
+  const mutation = trpc.useMutation(["request.search"]);
+  const requestMutation = trpc.useMutation(["request.request"]);
 
   return (
     <main>
@@ -51,6 +51,18 @@ const Submission = () => {
             return (
               <li key={item.id}>
                 {item.name} - {item.artists[0]?.name}
+                <button
+                  type="button"
+                  onClick={() =>
+                    requestMutation.mutate({
+                      trackId: item.id,
+                      submissionId: id as string,
+                    })
+                  }
+                  className="bg-red-500 p-2"
+                >
+                  Select
+                </button>
               </li>
             );
           })}

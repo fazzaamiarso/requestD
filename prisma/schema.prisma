@@ -21,10 +21,11 @@ model Submission {
 }
 
 model RequestedTrack {
-    id           String     @id @default(cuid())
-    spotifyId    String
-    submissionId String
-    submission   Submission @relation(fields: [submissionId], references: [id])
+    id            String     @id @default(cuid())
+    spotifyId     String
+    submissionId  String
+    submission    Submission @relation(fields: [submissionId], references: [id])
+    request_token String
 }
 
 // Necessary for Next auth

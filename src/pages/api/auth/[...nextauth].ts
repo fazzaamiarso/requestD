@@ -30,6 +30,9 @@ export const authOptions: NextAuthOptions = {
       authorization: `https://accounts.spotify.com/authorize?scope=user-read-email playlist-modify-public`,
       clientId: env.SPOTIFY_CLIENT_ID,
       clientSecret: env.SPOTIFY_CLIENT_SECRET,
+      httpOptions: {
+        timeout: 10000,
+      },
     }),
   ],
   session: {
