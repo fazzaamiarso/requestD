@@ -1,3 +1,4 @@
+import { SubmissionStatus } from "@prisma/client";
 import { z } from "zod";
 import {
   addTracksToPlaylist,
@@ -65,6 +66,8 @@ const submissionRouter = createProtectedRouter()
   .mutation("create", {
     input: z.object({
       title: z.string(),
+      requesLimit: z.string().nullish(),
+      duration: z.string().nullish(),
     }),
     async resolve({ ctx, input }) {
       const createdPlaylist = await createPlaylist(
@@ -72,6 +75,7 @@ const submissionRouter = createProtectedRouter()
         input.title
       );
 
+      //TODO: handle logic of date and request limit
       const submission = await ctx.prisma.submission.create({
         data: {
           userId: ctx.session.user.id,
@@ -98,23 +102,38 @@ const submissionRouter = createProtectedRouter()
         playlistId: input.playlistId,
         tracksURI,
       });
+
       await ctx.prisma.requestedTrack.updateMany({
         where: { id: { in: requestIds } },
         data: {
           status: "ACCEPTED",
         },
       });
-
       return null;
     },
   })
-  .mutation("delete", {
+  .mutation("reject", {
     input: z.object({
       requestId: z.string(),
     }),
     async resolve({ ctx, input }) {
       await ctx.prisma.requestedTrack.delete({
         where: { id: input.requestId },
+      });
+      return null;
+    },
+  })
+  .mutation("set-status", {
+    input: z.object({
+      submissionId: z.string(),
+      status: z.nativeEnum(SubmissionStatus),
+    }),
+    async resolve({ ctx, input }) {
+      await ctx.prisma.submission.update({
+        where: { id: input.submissionId },
+        data: {
+          status: input.status,
+        },
       });
       return null;
     },

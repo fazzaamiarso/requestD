@@ -1,10 +1,9 @@
 import { trpc } from "../../utils/trpc";
 import Link from "next/link";
 import { GetServerSidePropsContext } from "next";
-import { getSession, signOut, useSession } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
 import { createRedirect } from "../../utils/server-helper";
 import { ClipboardCopyIcon, LogoutIcon } from "@heroicons/react/solid";
-import Image from "next/image";
 
 export const getServerSideProps = async ({
   req,
@@ -85,4 +84,5 @@ const AdminDashboard = () => {
     </>
   );
 };
+
 export default AdminDashboard;

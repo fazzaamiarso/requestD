@@ -18,6 +18,12 @@ enum RequestedTrackStatus {
     PENDING
 }
 
+enum SubmissionStatus {
+    ONGOING
+    ENDED
+    PAUSED
+}
+
 model Submission {
     id                 String           @id @default(cuid())
     createdAt          DateTime         @default(now())
@@ -26,6 +32,7 @@ model Submission {
     spotifyPlaylistId  String
     maxTrackLimit      Int?
     personRequestLimit Int?
+    status             SubmissionStatus @default(ONGOING)
     requestedTracksId  RequestedTrack[]
 }
 

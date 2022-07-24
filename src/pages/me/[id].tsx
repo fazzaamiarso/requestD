@@ -3,7 +3,12 @@ import Image from "next/image";
 import { NextRouter, useRouter } from "next/router";
 import { trpc } from "../../utils/trpc";
 import { CalendarIcon, CheckIcon, XIcon } from "@heroicons/react/solid";
-import { ClipboardCopyIcon } from "@heroicons/react/outline";
+import {
+  ClipboardCopyIcon,
+  PauseIcon,
+  PlayIcon,
+  StopIcon,
+} from "@heroicons/react/outline";
 
 const copyToClipboard = (content: string) => {
   navigator.clipboard.writeText(content);
@@ -29,7 +34,10 @@ const OwnerSubmissionContent = ({
   router: NextRouter;
 }) => {
   const utils = trpc.useContext();
-  const { data } = trpc.useQuery(["submission.detail", { submissionId }]);
+  const { data, isLoading } = trpc.useQuery([
+    "submission.detail",
+    { submissionId },
+  ]);
 
   const { data: trackData } = trpc.useQuery([
     "submission.tracks",
@@ -37,11 +45,23 @@ const OwnerSubmissionContent = ({
   ]);
 
   const mutation = trpc.useMutation(["submission.add-to-playlist"]);
-  const deleteRequest = trpc.useMutation(["submission.delete"]);
+  const deleteRequest = trpc.useMutation(["submission.reject"]);
+  const statusMutation = trpc.useMutation(["submission.set-status"], {
+    onSuccess: () => utils.invalidateQueries(["submission.detail"]),
+  });
 
+  if (isLoading) return <p>Loading submission...</p>;
   if (!data) {
     return <p>No submission with this id</p>;
   }
+
+  const isPaused = data.submission.status === "PAUSED";
+  const handleResume = () =>
+    statusMutation.mutate({ status: "ONGOING", submissionId });
+  const handleEnd = () =>
+    statusMutation.mutate({ status: "ENDED", submissionId });
+  const handlePause = () =>
+    statusMutation.mutate({ status: "PAUSED", submissionId });
 
   return (
     <>
@@ -50,7 +70,12 @@ const OwnerSubmissionContent = ({
       </Head>
       <header className="mx-auto mt-6 flex w-11/12 max-w-4xl items-center ">
         <div className="flex flex-col space-y-1">
-          <h1 className="mr-6 text-3xl font-bold">{data.playlist.name}</h1>
+          <h1 className=" flex items-center gap-3 text-3xl font-bold">
+            {data.playlist.name}
+            <div className="text-normal rounded-full bg-green-200 p-1 px-2 text-xs font-semibold text-green-600 ring-1 ring-green-600">
+              {data.submission.status.toLowerCase()}
+            </div>
+          </h1>
           <div>
             <span className="flex items-center gap-1 text-sm text-textBody">
               <CalendarIcon className="h-4" />
@@ -58,7 +83,23 @@ const OwnerSubmissionContent = ({
             </span>
           </div>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-4">
+          {isPaused ? (
+            <button onClick={handleResume} className="flex items-center gap-1">
+              <PlayIcon className="h-6 sm:h-5" />{" "}
+              <span className="hidden sm:inline">Resume Submission</span>
+            </button>
+          ) : (
+            <button onClick={handlePause} className="flex items-center gap-1">
+              <PauseIcon className="h-6 sm:h-5" />{" "}
+              <span className="hidden sm:inline">Pause Submission</span>
+            </button>
+          )}
+          <button onClick={handleEnd} className="flex items-center gap-1">
+            <StopIcon className="h-6 sm:h-5" />{" "}
+            <span className="hidden sm:inline">End Submission</span>
+          </button>
+
           <button
             onClick={() =>
               copyToClipboard(`${location.origin}/submission/${submissionId}`)
