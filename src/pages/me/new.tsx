@@ -9,7 +9,7 @@ const NewSubmission = () => {
       <Head>
         <title>New Submission | Spotify - NGL</title>
       </Head>
-      <header className="mx-auto w-10/12">
+      <header className="mx-auto mt-8 w-10/12 max-w-2xl">
         <h1 className="text-3xl font-bold">New Submission</h1>
       </header>
       <main className="mx-auto my-12 w-10/12 max-w-2xl">
@@ -42,6 +42,7 @@ const NewSubmission = () => {
               className="w-full rounded-sm bg-inputBg"
             />
           </div>
+
           <button
             type="submit"
             className="mt-8 flex items-center gap-1 rounded-sm bg-green-400 p-3 font-semibold text-darkBg"

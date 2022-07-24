@@ -1,8 +1,9 @@
 import Head from "next/head";
 import Image from "next/image";
-import { useRouter } from "next/router";
+import { NextRouter, useRouter } from "next/router";
 import { trpc } from "../../utils/trpc";
-import { CheckIcon, XIcon, DuplicateIcon } from "@heroicons/react/solid";
+import { CalendarIcon, CheckIcon, XIcon } from "@heroicons/react/solid";
+import { ClipboardCopyIcon } from "@heroicons/react/outline";
 
 const copyToClipboard = (content: string) => {
   navigator.clipboard.writeText(content);
@@ -12,15 +13,27 @@ const OwnerSubmission = () => {
   const router = useRouter();
   const { id } = router.query;
 
+  if (typeof id !== "string")
+    return (
+      <h1 className="text-3xl font-bold">No submission found with this Id</h1>
+    );
+
+  return <OwnerSubmissionContent submissionId={id} router={router} />;
+};
+
+const OwnerSubmissionContent = ({
+  submissionId,
+  router,
+}: {
+  submissionId: string;
+  router: NextRouter;
+}) => {
   const utils = trpc.useContext();
-  const { data } = trpc.useQuery([
-    "submission.detail",
-    { submissionId: id as string },
-  ]);
+  const { data } = trpc.useQuery(["submission.detail", { submissionId }]);
 
   const { data: trackData } = trpc.useQuery([
     "submission.tracks",
-    { submissionId: id as string },
+    { submissionId },
   ]);
 
   const mutation = trpc.useMutation(["submission.add-to-playlist"]);
@@ -33,19 +46,33 @@ const OwnerSubmission = () => {
   return (
     <>
       <Head>
-        <title>Spotify - NGL | {id}</title>
+        <title>Spotify - NGL | {submissionId}</title>
       </Head>
-      <header className="mx-auto mt-6 flex w-11/12 items-center">
-        <h1 className="mr-6 text-3xl font-bold">{data.playlist.name}</h1>
-        <button
-          onClick={() => copyToClipboard(`${location.origin}/submission/${id}`)}
-          className=""
-        >
-          <DuplicateIcon className="h-8" />
-        </button>
+      <header className="mx-auto mt-6 flex w-11/12 max-w-4xl items-center ">
+        <div className="flex flex-col space-y-1">
+          <h1 className="mr-6 text-3xl font-bold">{data.playlist.name}</h1>
+          <div>
+            <span className="flex items-center gap-1 text-sm text-textBody">
+              <CalendarIcon className="h-4" />
+              {data.submission.createdAt.toDateString()}
+            </span>
+          </div>
+        </div>
+        <div className="ml-auto">
+          <button
+            onClick={() =>
+              copyToClipboard(`${location.origin}/submission/${submissionId}`)
+            }
+            className="flex items-center gap-1 rounded-sm p-2 text-textBody ring-1 ring-textHeading"
+          >
+            <ClipboardCopyIcon className="h-6 sm:h-5" />
+            <span className="hidden sm:inline">Copy link</span>
+          </button>
+        </div>
       </header>
-      <main className="mx-auto mt-12 w-11/12">
+      <main className="mx-auto mt-12 w-11/12 max-w-4xl">
         <h2 className="mb-4 text-xl font-bold">Pending Requests</h2>
+        <div className="h-px w-full bg-cardBg" />
         <ul className="my-8 space-y-4">
           {trackData &&
             trackData.tracks.map((track) => {
@@ -87,9 +114,12 @@ const OwnerSubmission = () => {
                           }
                         );
                       }}
+                      className="flex items-center gap-1 rounded-sm bg-inputBg p-2"
                     >
                       <CheckIcon className="h-6 text-green-400" />
-                      <span className="sr-only">Accept song request</span>
+                      <span className="hidden text-textBody sm:inline">
+                        Accept
+                      </span>
                     </button>
                     <button
                       onClick={() => {
@@ -101,9 +131,12 @@ const OwnerSubmission = () => {
                           }
                         );
                       }}
+                      className="flex items-center gap-1 rounded-sm bg-inputBg p-2"
                     >
                       <XIcon className="h-6 text-red-400" />
-                      <span className="sr-only">Reject song request</span>
+                      <span className="hidden text-textBody sm:inline">
+                        Reject
+                      </span>
                     </button>
                   </div>
                 </li>

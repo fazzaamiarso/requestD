@@ -19,13 +19,14 @@ enum RequestedTrackStatus {
 }
 
 model Submission {
-    id                String           @id @default(cuid())
-    createdAt         DateTime         @default(now())
-    endsAt            DateTime?
-    userId            String
-    spotifyPlaylistId String
-    maxTrackLimit     Int              @default(0)
-    requestedTracksId RequestedTrack[]
+    id                 String           @id @default(cuid())
+    createdAt          DateTime         @default(now())
+    endsAt             DateTime?
+    userId             String
+    spotifyPlaylistId  String
+    maxTrackLimit      Int?
+    personRequestLimit Int?
+    requestedTracksId  RequestedTrack[]
 }
 
 model RequestedTrack {
