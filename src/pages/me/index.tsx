@@ -1,11 +1,15 @@
 import { trpc } from "../../utils/trpc";
 import Link from "next/link";
+import Image from "next/image";
 import { GetServerSidePropsContext } from "next";
 import { getSession, signOut } from "next-auth/react";
 import { createRedirect } from "../../utils/server-helper";
 import { ClipboardCopyIcon, LogoutIcon } from "@heroicons/react/solid";
 import relativeTime from "dayjs/plugin/relativeTime";
 import dayjs from "dayjs";
+import { TrashIcon } from "@heroicons/react/outline";
+import { SubmissionChips } from "../../components/status-chips";
+import EmptyIllustration from "../../assets/sub-empty.svg";
 dayjs.extend(relativeTime);
 
 export const getServerSideProps = async ({
@@ -21,8 +25,12 @@ const copyToClipboard = (content: string) => {
 };
 
 const AdminDashboard = () => {
+  const utils = trpc.useContext();
   const { data, isLoading } = trpc.useQuery(["submission.all"]);
-  //TODO: Handle delete submission
+  const deleteMutation = trpc.useMutation(["submission.delete"], {
+    onSuccess: () => utils.invalidateQueries(["submission.all"]),
+  });
+
   return (
     <>
       <header className="mb-20  bg-[#262627] py-6 ">
@@ -46,33 +54,45 @@ const AdminDashboard = () => {
             </a>
           </Link>
         </div>
+        {data?.playlists.length && <EmptyState />}
         <ul className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
           {isLoading && <p>Loading submissions...</p>}
           {!isLoading &&
             data &&
-            data.playlists.map(({ playlist, submissionId, createdAt }) => {
+            data.playlists.map(({ playlist, submission }) => {
               return (
                 <li
                   key={playlist.id}
                   className="flex flex-col items-start rounded-md  bg-cardBg p-4 px-6 sm:flex-row sm:items-center"
                 >
                   <div className="flex flex-col">
+                    <SubmissionChips
+                      status={submission.status}
+                      className="mb-1 p-0"
+                    />
                     <h2 className="text-xl font-semibold">{playlist.name}</h2>
                     <p className="text-xs text-textBody">
-                      {dayjs(createdAt).fromNow()}
+                      {dayjs(submission.createdAt).fromNow()}
                     </p>
                   </div>
-                  <div className="mt-8 flex items-center gap-6 sm:ml-auto sm:mt-0">
+                  <div className="mt-8 flex items-center gap-8 sm:ml-auto sm:mt-0 sm:gap-6">
+                    <button
+                      onClick={() =>
+                        deleteMutation.mutate({ submissionId: submission.id })
+                      }
+                    >
+                      <TrashIcon className="h-6" />
+                    </button>
                     <button
                       onClick={() =>
                         copyToClipboard(
-                          `${location.origin}/submission/${submissionId}`
+                          `${location.origin}/submission/${submission.id}`
                         )
                       }
                     >
                       <ClipboardCopyIcon className="h-6 " />
                     </button>
-                    <Link href={`/me/${submissionId}`}>
+                    <Link href={`/me/${submission.id}`}>
                       <a className="rounded-sm bg-inputBg p-2 px-3 text-materialPurple-200">
                         Go to live
                       </a>
@@ -82,10 +102,25 @@ const AdminDashboard = () => {
               );
             })}
         </ul>
-        <div></div>
       </main>
     </>
   );
 };
 
 export default AdminDashboard;
+
+const EmptyState = () => {
+  return (
+    <div className="mt-28 flex w-full flex-col items-center gap-2 ">
+      <Image
+        src={EmptyIllustration}
+        alt="Two people holding an empty archive"
+        height={100}
+        width={100}
+      />
+      <p className=" text-lg  text-materialPurple-100">
+        There are no song requests yet!
+      </p>
+    </div>
+  );
+};

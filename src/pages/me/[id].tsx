@@ -9,9 +9,10 @@ import {
   PlayIcon,
   StopIcon,
 } from "@heroicons/react/outline";
-import type { SubmissionStatus } from "@prisma/client";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import NoDataIllustration from "../../assets/no-data.svg";
+import { SubmissionChips } from "../../components/status-chips";
 dayjs.extend(relativeTime);
 
 const copyToClipboard = (content: string) => {
@@ -126,7 +127,8 @@ const OwnerSubmissionContent = ({
       <main className="mx-auto mt-12 w-11/12 max-w-4xl">
         <h2 className="mb-4 text-xl font-bold">Pending Requests</h2>
         <div className="h-px w-full bg-cardBg" />
-        <ul className="my-8 space-y-4">
+        {!trackData?.tracks.length && <EmptyState />}
+        <ul className="my-8 space-y-4 empty:hidden">
           {trackData &&
             trackData.tracks.map((track) => {
               return (
@@ -189,19 +191,20 @@ const OwnerSubmissionContent = ({
   );
 };
 
-const chipsVariant: Record<SubmissionStatus, string> = {
-  ONGOING: "bg-green-200 text-green-600 ring-1 ring-green-600",
-  ENDED: "bg-red-200 text-red-600 ring-1 ring-red-600",
-  PAUSED: "bg-yellow-200 text-yellow-600 ring-1 ring-yellow-600",
-};
-const SubmissionChips = ({ status }: { status: SubmissionStatus }) => {
+export default OwnerSubmission;
+
+const EmptyState = () => {
   return (
-    <div
-      className={`text-normal rounded-full  p-1 px-2 text-xs font-semibold ${chipsVariant[status]}`}
-    >
-      {status.toLowerCase()}
+    <div className="mt-28 flex w-full flex-col items-center gap-2 ">
+      <Image
+        src={NoDataIllustration}
+        alt="Two empty clipboard with purple accent"
+        height={100}
+        width={100}
+      />
+      <p className=" text-lg  text-materialPurple-100">
+        There are no song requests yet!
+      </p>
     </div>
   );
 };
-
-export default OwnerSubmission;
