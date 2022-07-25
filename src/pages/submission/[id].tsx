@@ -1,4 +1,4 @@
-import { GetServerSidePropsContext } from "next";
+import { GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { trpc } from "../../utils/trpc";
@@ -16,19 +16,37 @@ export const getServerSideProps = async ({
 }: GetServerSidePropsContext) => {
   const id = params!.id as string;
   const session = await getSession({ req });
-  const submission = await prisma.submission.findFirst({
+  let submission = await prisma.submission.findFirst({
     where: { id },
-    select: { userId: true },
   });
 
   const isSubmissionOwner = session?.user?.id === submission?.userId;
   if (isSubmissionOwner) return createRedirect(`/me/${id}`);
 
-  return { props: {} };
+  submission = JSON.parse(JSON.stringify(submission));
+  return {
+    props: {
+      submission,
+    },
+  };
+};
+
+const Submission = ({
+  submission,
+}: InferGetServerSidePropsType<typeof getServerSideProps>) => {
+  if (!submission) return <h1>No submission with this Id found!</h1>;
+
+  if (submission.status === "ENDED") return <h1>Submission has ended.</h1>;
+  if (submission.status === "PAUSED")
+    return <h1>Submission has been paused by the owner.</h1>;
+
+  return <SubmissionContent submission={submission} />;
 };
 
 let firstRender = true;
-const Submission = () => {
+const SubmissionContent = ({
+  submission,
+}: InferGetServerSidePropsType<typeof getServerSideProps>) => {
   const router = useRouter();
   const { id } = router.query;
   const mutation = trpc.useMutation(["request.search"]);

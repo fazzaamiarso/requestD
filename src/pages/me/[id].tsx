@@ -45,8 +45,12 @@ const OwnerSubmissionContent = ({
     { submissionId },
   ]);
 
-  const mutation = trpc.useMutation(["submission.add-to-playlist"]);
-  const deleteRequest = trpc.useMutation(["submission.reject"]);
+  const mutation = trpc.useMutation(["submission.add-to-playlist"], {
+    onSuccess: () => utils.invalidateQueries(["submission.tracks"]),
+  });
+  const deleteRequest = trpc.useMutation(["submission.reject"], {
+    onSuccess: () => utils.invalidateQueries(["submission.tracks"]),
+  });
   const statusMutation = trpc.useMutation(["submission.set-status"], {
     onSuccess: () => utils.invalidateQueries(["submission.detail"]),
   });
@@ -144,21 +148,15 @@ const OwnerSubmissionContent = ({
                   <div className="ml-auto flex items-center gap-4">
                     <button
                       onClick={() => {
-                        mutation.mutate(
-                          {
-                            playlistId: data.playlist.id,
-                            tracksData: [
-                              {
-                                requestId: track.requestId,
-                                uri: track.uri,
-                              },
-                            ],
-                          },
-                          {
-                            onSuccess: () =>
-                              utils.invalidateQueries(["submission.tracks"]),
-                          }
-                        );
+                        mutation.mutate({
+                          playlistId: data.playlist.id,
+                          tracksData: [
+                            {
+                              requestId: track.requestId,
+                              uri: track.uri,
+                            },
+                          ],
+                        });
                       }}
                       className="flex items-center gap-1 rounded-sm bg-inputBg p-2"
                     >
@@ -169,13 +167,7 @@ const OwnerSubmissionContent = ({
                     </button>
                     <button
                       onClick={() => {
-                        deleteRequest.mutate(
-                          { requestId: track.requestId },
-                          {
-                            onSuccess: () =>
-                              utils.invalidateQueries(["submission.tracks"]),
-                          }
-                        );
+                        deleteRequest.mutate({ requestId: track.requestId });
                       }}
                       className="flex items-center gap-1 rounded-sm bg-inputBg p-2"
                     >
