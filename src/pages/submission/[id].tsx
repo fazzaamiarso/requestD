@@ -13,10 +13,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 
-export const getServerSideProps = async ({
-  params,
-  req,
-}: GetServerSidePropsContext) => {
+export const getServerSideProps = async ({ params, req }: GetServerSidePropsContext) => {
   const id = params!.id as string;
   const session = await getSession({ req });
   let submission = await prisma.submission.findFirst({
@@ -26,13 +23,24 @@ export const getServerSideProps = async ({
   const isSubmissionOwner = session?.user?.id === submission?.userId;
   if (isSubmissionOwner) return createRedirect(`/me/${id}`);
 
+  if (
+    submission &&
+    dayjs().isAfter(submission.endsAt) &&
+    submission.status !== "ENDED"
+  ) {
+    submission = await prisma.submission.update({
+      where: { id },
+      data: { status: "ENDED" },
+    });
+  }
+  //TODO: Do the request limit check
   submission = JSON.parse(JSON.stringify(submission));
   return {
     props: {
       submission,
     },
   };
-};
+};;
 
 const Submission = ({
   submission,
