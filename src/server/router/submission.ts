@@ -7,6 +7,9 @@ import {
   getTrack,
 } from "../../lib/spotify";
 import { createProtectedRouter } from "./context";
+import relativeTime from "dayjs/plugin/relativeTime";
+import dayjs from "dayjs";
+dayjs.extend(relativeTime);
 
 const submissionRouter = createProtectedRouter()
   .query("all", {
@@ -66,7 +69,7 @@ const submissionRouter = createProtectedRouter()
   .mutation("create", {
     input: z.object({
       title: z.string(),
-      requesLimit: z.string().nullish(),
+      requestLimit: z.string().nullish(),
       duration: z.string().nullish(),
     }),
     async resolve({ ctx, input }) {
@@ -75,9 +78,18 @@ const submissionRouter = createProtectedRouter()
         input.title
       );
 
-      //TODO: handle logic of date and request limit
+      const createdAt = dayjs().toDate();
+      const endsAt =
+        input.duration && dayjs().add(Number(input.duration), "hours").toDate();
+      const requestLimit = Boolean(input.requestLimit)
+        ? Number(input.requestLimit)
+        : null;
+
       const submission = await ctx.prisma.submission.create({
         data: {
+          createdAt,
+          endsAt,
+          personRequestLimit: requestLimit,
           userId: ctx.session.user.id,
           spotifyPlaylistId: createdPlaylist.id,
         },
@@ -140,7 +152,6 @@ const submissionRouter = createProtectedRouter()
           where: { submissionId: input.submissionId },
         });
       }
-      
 
       return null;
     },

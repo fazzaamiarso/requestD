@@ -22,9 +22,11 @@ const NewSubmission = () => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
             const title = formData.get("title") as string;
+            const duration = formData.get("duration") as string;
+            const requestLimit = formData.get("request-limit") as string;
 
             mutation.mutate(
-              { title },
+              { title, duration, requestLimit },
               {
                 onSuccess(data) {
                   window.location.replace(`/me/${data.submissionId}`);

@@ -10,6 +10,9 @@ import {
   StopIcon,
 } from "@heroicons/react/outline";
 import type { SubmissionStatus } from "@prisma/client";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
 const copyToClipboard = (content: string) => {
   navigator.clipboard.writeText(content);
@@ -86,7 +89,7 @@ const OwnerSubmissionContent = ({
           <div>
             <span className="flex items-center gap-1 text-sm text-textBody">
               <CalendarIcon className="h-4" />
-              {data.submission.createdAt.toDateString()}
+              {dayjs(data.submission.createdAt).fromNow()}
             </span>
           </div>
         </div>

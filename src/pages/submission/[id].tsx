@@ -9,6 +9,9 @@ import { SearchIcon } from "@heroicons/react/solid";
 import Image from "next/image";
 import { InboxInIcon } from "@heroicons/react/outline";
 import { useEffect } from "react";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
 export const getServerSideProps = async ({
   params,
@@ -63,7 +66,11 @@ const SubmissionContent = ({
       </Head>
       <header className="mx-auto my-8 w-10/12 max-w-xl">
         <h1 className="text-2xl font-bold">{id} Live submission</h1>
-        <span className="text-textBody">submission ends at :</span>
+        {submission?.endsAt && (
+          <span className="text-textBody">
+            submission will ends {dayjs(submission.endsAt).fromNow(false)}
+          </span>
+        )}
         <div className="mt-4 h-px w-full bg-cardBg" />
       </header>
       <main className="mx-auto mt-8 w-10/12  max-w-xl ">

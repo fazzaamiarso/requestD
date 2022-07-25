@@ -4,6 +4,9 @@ import { GetServerSidePropsContext } from "next";
 import { getSession, signOut } from "next-auth/react";
 import { createRedirect } from "../../utils/server-helper";
 import { ClipboardCopyIcon, LogoutIcon } from "@heroicons/react/solid";
+import relativeTime from "dayjs/plugin/relativeTime";
+import dayjs from "dayjs";
+dayjs.extend(relativeTime);
 
 export const getServerSideProps = async ({
   req,
@@ -56,7 +59,7 @@ const AdminDashboard = () => {
                   <div className="flex flex-col">
                     <h2 className="text-xl font-semibold">{playlist.name}</h2>
                     <p className="text-xs text-textBody">
-                      {createdAt.toDateString()}
+                      {dayjs(createdAt).fromNow()}
                     </p>
                   </div>
                   <div className="mt-8 flex items-center gap-6 sm:ml-auto sm:mt-0">
