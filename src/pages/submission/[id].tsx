@@ -13,6 +13,7 @@ import musicIllustration from "../../assets/happy-music.svg";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { Submission } from "@prisma/client";
+import { SubmissionEnded } from "../../components/lottie";
 dayjs.extend(relativeTime);
 
 export const getServerSideProps = async ({
@@ -65,9 +66,10 @@ const Submission = ({
 
   if (requestsLeft && requestsLeft === 0)
     return <h1>You have used all your request</h1>;
-  if (submission.status === "ENDED") return <h1>Submission has ended.</h1>;
+  if (submission.status === "ENDED")
+    return <EndedPage message="Sorry, the submission has ended!" />;
   if (submission.status === "PAUSED")
-    return <h1>Submission has been paused by the owner.</h1>;
+    return <EndedPage message="Submission has been paused by the owner." />;
 
   return (
     <SubmissionContent submission={submission} requestsLeft={requestsLeft} />
@@ -101,7 +103,7 @@ const SubmissionContent = ({
   return (
     <>
       <Head>
-        <title>Live Submission | Spotify - NGL</title>
+        <title>Live Submission | RequestD</title>
       </Head>
       <header className="mx-auto my-8 w-10/12 max-w-xl">
         <h1 className="text-2xl font-semibold ">
@@ -248,3 +250,11 @@ const NewReleases = ({
   );
 };
 
+const EndedPage = ({ message }: { message: string }) => {
+  return (
+    <div className="mt-24 flex w-screen flex-col items-center justify-center">
+      <SubmissionEnded />
+      <h1 className="-mt-12 text-xl font-bold">{message}</h1>
+    </div>
+  );
+};

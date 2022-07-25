@@ -12,6 +12,8 @@ import { SubmissionChips } from "../../components/status-chips";
 import EmptyIllustration from "../../assets/sub-empty.svg";
 dayjs.extend(relativeTime);
 
+import { LoadingSpinner } from "../../components/lottie";
+
 export const getServerSideProps = async ({
   req,
 }: GetServerSidePropsContext) => {
@@ -54,9 +56,13 @@ const AdminDashboard = () => {
             </a>
           </Link>
         </div>
-        {data?.playlists.length && <EmptyState />}
-        <ul className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {isLoading && <p>Loading submissions...</p>}
+        {!isLoading && !data?.playlists.length && <EmptyState />}
+        <ul className="mt-6 grid grid-cols-1 gap-4 empty:hidden lg:grid-cols-2">
+          {isLoading && (
+            <div className="mt-12">
+              <LoadingSpinner />
+            </div>
+          )}
           {!isLoading &&
             data &&
             data.playlists.map(({ playlist, submission }) => {
@@ -124,3 +130,4 @@ const EmptyState = () => {
     </div>
   );
 };
+
