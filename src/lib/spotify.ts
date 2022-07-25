@@ -56,6 +56,19 @@ const searchTracksSchema = z.object({
   }),
 });
 
+const albumSchema = z.object({
+  id: z.string(),
+  images: z.array(imageSchema),
+  tracks: z.object({
+    items: z.array(trackSchema.omit({ album: true })),
+  }),
+});
+const newReleasesSchema = z.object({
+  albums: z.object({
+    items: z.array(z.object({ id: z.string() })),
+  }),
+});
+
 const getAccessToken = async (refresh_token: string) => {
   const response = await fetch(TOKEN_ENDPOINT, {
     method: "POST",
@@ -191,6 +204,24 @@ const getTrack = async (spotifyId: string) => {
   return track;
 };
 
+const getTrackRecommendations = async () => {
+  const { access_token } = await getPublicAccessToken();
+  const searchQuery = new URLSearchParams({ limit: "10" });
+
+  const res = await fetch(`${BASE_ENDPOINT}/recommendations?${searchQuery}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  const tracks = z
+    .object({ tracks: z.array(trackSchema) })
+    .parse(await res.json());
+  return tracks.tracks;
+};
+
 const addTracksToPlaylist = async (
   refresh_token: string,
   data: { playlistId: string; tracksURI: string[] }
@@ -217,6 +248,40 @@ const addTracksToPlaylist = async (
   return result;
 };
 
+const getNewReleases = async () => {
+  const { access_token } = await getPublicAccessToken();
+  const res = await fetch(`${BASE_ENDPOINT}/browse/new-releases`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const results = newReleasesSchema.parse(await res.json());
+
+  return results.albums.items;
+};
+
+const getSeveralAlbums = async (spotifyIds: string[]) => {
+  const { access_token } = await getPublicAccessToken();
+  const albumIds = formatArrToCSV(spotifyIds.slice(0, 10));
+  const searchQuery = new URLSearchParams({ ids: albumIds });
+
+  const res = await fetch(`${BASE_ENDPOINT}/albums?${searchQuery}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  const albums = z
+    .object({ albums: z.array(albumSchema) })
+    .parse(await res.json());
+
+  return albums.albums;
+};
+
 export {
   getUsersPlaylists,
   getMyProfile,
@@ -226,4 +291,7 @@ export {
   getSeveralTracks,
   getTrack,
   addTracksToPlaylist,
+  getTrackRecommendations,
+  getNewReleases,
+  getSeveralAlbums,
 };

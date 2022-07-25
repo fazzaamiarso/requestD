@@ -22,7 +22,7 @@ const copyToClipboard = (content: string) => {
 
 const AdminDashboard = () => {
   const { data, isLoading } = trpc.useQuery(["submission.all"]);
-
+  //TODO: Handle delete submission
   return (
     <>
       <header className="mb-20  bg-[#262627] py-6 ">

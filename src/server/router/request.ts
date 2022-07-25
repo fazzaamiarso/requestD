@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { searchTracks } from "../../lib/spotify";
+import {
+  getNewReleases,
+  getSeveralAlbums,
+  searchTracks,
+} from "../../lib/spotify";
 import { createRouter } from "./context";
 
 const requestRouter = createRouter()
@@ -27,6 +31,19 @@ const requestRouter = createRouter()
           request_token: ctx.submissionToken,
         },
       });
+    },
+  })
+  .query("recommendations", {
+    async resolve() {
+      const newReleaseAlbums = await getNewReleases();
+      const albumIds = newReleaseAlbums.map((album) => album.id);
+      const albumsData = await getSeveralAlbums(albumIds);
+
+      const tracks = albumsData.map((album) => {
+        return { ...album.tracks.items[0]!, album };
+      });
+
+      return { recommendations: tracks };
     },
   });
 

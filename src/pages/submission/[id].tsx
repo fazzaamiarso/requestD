@@ -1,7 +1,7 @@
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { trpc } from "../../utils/trpc";
+import { inferMutationInput, trpc } from "../../utils/trpc";
 import { prisma } from "../../server/db/client";
 import { createRedirect } from "../../utils/server-helper";
 import Head from "next/head";
@@ -13,7 +13,10 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 
-export const getServerSideProps = async ({ params, req }: GetServerSidePropsContext) => {
+export const getServerSideProps = async ({
+  params,
+  req,
+}: GetServerSidePropsContext) => {
   const id = params!.id as string;
   const session = await getSession({ req });
   let submission = await prisma.submission.findFirst({
@@ -40,7 +43,7 @@ export const getServerSideProps = async ({ params, req }: GetServerSidePropsCont
       submission,
     },
   };
-};;
+};
 
 const Submission = ({
   submission,
@@ -54,6 +57,8 @@ const Submission = ({
   return <SubmissionContent submission={submission} />;
 };
 
+type RequestInput = inferMutationInput<"request.request">;
+
 let firstRender = true;
 const SubmissionContent = ({
   submission,
@@ -61,7 +66,13 @@ const SubmissionContent = ({
   const router = useRouter();
   const { id } = router.query;
   const mutation = trpc.useMutation(["request.search"]);
-  const requestMutation = trpc.useMutation(["request.request"]);
+  const requestMutation = trpc.useMutation(["request.request"], {
+    onSuccess: () => router.replace("/thank-you"),
+  });
+
+  const handleRequest = (trackId: RequestInput["trackId"]) => {
+    requestMutation.mutate({ trackId, submissionId: id as string });
+  };
 
   useEffect(() => {
     firstRender = false;
@@ -119,7 +130,7 @@ const SubmissionContent = ({
             </div>
           </form>
         </div>
-        {firstRender && <RecommendedTracks />}
+        {firstRender && <RecommendedTracks onRequest={handleRequest} />}
         {mutation.data && (
           <ul className="my-6 space-y-4">
             {mutation.data.map((item) => {
@@ -144,19 +155,7 @@ const SubmissionContent = ({
                   </div>
                   <button
                     type="button"
-                    onClick={() =>
-                      requestMutation.mutate(
-                        {
-                          trackId: item.id,
-                          submissionId: id as string,
-                        },
-                        {
-                          onSuccess() {
-                            router.replace("/thank-you");
-                          },
-                        }
-                      )
-                    }
+                    onClick={() => handleRequest(item.id)}
                     className="ml-auto flex items-center gap-2 rounded-md bg-inputBg  p-2 text-textBody"
                   >
                     <InboxInIcon className="h-7 sm:h-6" />{" "}
@@ -200,11 +199,50 @@ const LoadingSpinner = ({ className = "" }: { className?: string }) => {
   );
 };
 
-const RecommendedTracks = () => {
+const RecommendedTracks = ({
+  onRequest,
+}: {
+  onRequest: (input: RequestInput["trackId"]) => void;
+}) => {
+  const { data } = trpc.useQuery(["request.recommendations"]);
+
   return (
     <div className="mt-8 w-full">
       <h3 className="font-semibold">Recommended tracks</h3>
-      <ul></ul>
+      <ul className="my-6 space-y-4">
+        {data?.recommendations &&
+          data.recommendations.map((item) => {
+            return (
+              <li
+                key={item.id}
+                className="flex items-center gap-4 rounded-md bg-cardBg p-4 "
+              >
+                {item.album.images[0] && (
+                  <Image
+                    src={item.album.images[0].url}
+                    alt={item.name}
+                    height={50}
+                    width={50}
+                  />
+                )}
+                <div className="ml-6">
+                  <h3 className="font-semibold sm:text-lg">{item.name}</h3>
+                  <h4 className="s text-sm text-textBody">
+                    {item.artists[0]?.name}
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRequest(item.id)}
+                  className="ml-auto flex items-center gap-2 rounded-md bg-inputBg  p-2 text-textBody"
+                >
+                  <InboxInIcon className="h-7 sm:h-6" />{" "}
+                  <span className="hidden text-sm sm:inline">Request</span>
+                </button>
+              </li>
+            );
+          })}
+      </ul>
     </div>
   );
 };
