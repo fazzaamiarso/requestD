@@ -9,6 +9,7 @@ import {
   PlayIcon,
   StopIcon,
 } from "@heroicons/react/outline";
+import type { SubmissionStatus } from "@prisma/client";
 
 const copyToClipboard = (content: string) => {
   navigator.clipboard.writeText(content);
@@ -56,10 +57,14 @@ const OwnerSubmissionContent = ({
   }
 
   const isPaused = data.submission.status === "PAUSED";
+  const isEnded = data.submission.status === "ENDED";
   const handleResume = () =>
     statusMutation.mutate({ status: "ONGOING", submissionId });
   const handleEnd = () =>
-    statusMutation.mutate({ status: "ENDED", submissionId });
+    statusMutation.mutate(
+      { status: "ENDED", submissionId },
+      { onSuccess: () => utils.invalidateQueries(["submission.tracks"]) }
+    );
   const handlePause = () =>
     statusMutation.mutate({ status: "PAUSED", submissionId });
 
@@ -72,9 +77,7 @@ const OwnerSubmissionContent = ({
         <div className="flex flex-col space-y-1">
           <h1 className=" flex items-center gap-3 text-3xl font-bold">
             {data.playlist.name}
-            <div className="text-normal rounded-full bg-green-200 p-1 px-2 text-xs font-semibold text-green-600 ring-1 ring-green-600">
-              {data.submission.status.toLowerCase()}
-            </div>
+            <SubmissionChips status={data.submission.status} />
           </h1>
           <div>
             <span className="flex items-center gap-1 text-sm text-textBody">
@@ -84,21 +87,23 @@ const OwnerSubmissionContent = ({
           </div>
         </div>
         <div className="ml-auto flex items-center gap-4">
-          {isPaused ? (
+          {isPaused || isEnded ? (
             <button onClick={handleResume} className="flex items-center gap-1">
               <PlayIcon className="h-6 sm:h-5" />{" "}
-              <span className="hidden sm:inline">Resume Submission</span>
+              <span className="hidden sm:inline">Resume</span>
             </button>
           ) : (
             <button onClick={handlePause} className="flex items-center gap-1">
               <PauseIcon className="h-6 sm:h-5" />{" "}
-              <span className="hidden sm:inline">Pause Submission</span>
+              <span className="hidden sm:inline">Pause</span>
             </button>
           )}
-          <button onClick={handleEnd} className="flex items-center gap-1">
-            <StopIcon className="h-6 sm:h-5" />{" "}
-            <span className="hidden sm:inline">End Submission</span>
-          </button>
+          {isEnded ? null : (
+            <button onClick={handleEnd} className="flex items-center gap-1">
+              <StopIcon className="h-6 sm:h-5" />{" "}
+              <span className="hidden sm:inline">End</span>
+            </button>
+          )}
 
           <button
             onClick={() =>
@@ -188,4 +193,20 @@ const OwnerSubmissionContent = ({
     </>
   );
 };
+
+const chipsVariant: Record<SubmissionStatus, string> = {
+  ONGOING: "bg-green-200 text-green-600 ring-1 ring-green-600",
+  ENDED: "bg-red-200 text-red-600 ring-1 ring-red-600",
+  PAUSED: "bg-yellow-200 text-yellow-600 ring-1 ring-yellow-600",
+};
+const SubmissionChips = ({ status }: { status: SubmissionStatus }) => {
+  return (
+    <div
+      className={`text-normal rounded-full  p-1 px-2 text-xs font-semibold ${chipsVariant[status]}`}
+    >
+      {status.toLowerCase()}
+    </div>
+  );
+};
+
 export default OwnerSubmission;
