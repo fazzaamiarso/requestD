@@ -13,6 +13,7 @@ import EmptyIllustration from "../../assets/sub-empty.svg";
 import { LoadingSpinner } from "../../components/lottie";
 import { copyToClipboard } from "../../utils/client-helper";
 import Head from "next/head";
+import toast, { Toaster } from "react-hot-toast";
 
 export const getServerSideProps = async ({
   req,
@@ -21,6 +22,13 @@ export const getServerSideProps = async ({
   if (!session?.user) return createRedirect("/");
   return { props: {} };
 };
+
+const copyToast = (toastId: string) =>
+  toast("Copied link to clipboard", {
+    id: toastId,
+    duration: 1500,
+    position: "top-center",
+  });
 
 const AdminDashboard = () => {
   const utils = trpc.useContext();
@@ -34,6 +42,7 @@ const AdminDashboard = () => {
       <Head>
         <title>Dashboard | RequestD</title>
       </Head>
+      <Toaster />
       <header className="mb-20  bg-[#262627] py-6 ">
         <div className=" mx-auto flex w-10/12 ">
           <div className="text-3xl font-bold">LOGO</div>
@@ -89,11 +98,12 @@ const AdminDashboard = () => {
                       <TrashIcon className="h-6" />
                     </button>
                     <button
-                      onClick={() =>
+                      onClick={() => {
                         copyToClipboard(
                           `${location.origin}/submission/${submission.id}`
-                        )
-                      }
+                        );
+                        copyToast(playlist.id);
+                      }}
                     >
                       <ClipboardCopyIcon className="h-6 " />
                     </button>

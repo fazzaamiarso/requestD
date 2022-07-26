@@ -19,6 +19,7 @@ import NoDataIllustration from "../../assets/no-data.svg";
 import { SubmissionChips } from "../../components/status-chips";
 import { ReactNode, useEffect } from "react";
 import { copyToClipboard } from "../../utils/client-helper";
+import toast, { Toaster } from "react-hot-toast";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -30,6 +31,13 @@ const OwnerSubmission = () => {
 
   return <OwnerSubmissionContent submissionId={id} router={router} />;
 };
+
+const copyToast = (toastId: string) =>
+  toast("Copied link to clipboard", {
+    id: toastId,
+    duration: 1500,
+    position: "top-center",
+  });
 
 const OwnerSubmissionContent = ({
   submissionId,
@@ -92,6 +100,7 @@ const OwnerSubmissionContent = ({
       <Head>
         <title>RequestD | {data?.playlist.name}</title>
       </Head>
+      <Toaster />
       {isLoading ? (
         <HeaderSkeleton />
       ) : (
@@ -132,11 +141,12 @@ const OwnerSubmissionContent = ({
               )}
 
               <button
-                onClick={() =>
+                onClick={() => {
                   copyToClipboard(
                     `${location.origin}/submission/${submissionId}`
-                  )
-                }
+                  );
+                  copyToast(data.submission.id);
+                }}
                 className="flex items-center gap-1 rounded-sm p-2 text-materialPurple-200 ring-1 ring-materialPurple-200 transition-colors hover:bg-materialPurple-100"
               >
                 <ClipboardCopyIcon className="h-6 sm:h-5 " />
