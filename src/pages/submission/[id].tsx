@@ -8,12 +8,13 @@ import Head from "next/head";
 import { SearchIcon } from "@heroicons/react/solid";
 import Image from "next/image";
 import { InboxInIcon } from "@heroicons/react/outline";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import musicIllustration from "../../assets/happy-music.svg";
 import { dayjs } from "../../lib/dayjs";
 import { Submission } from "@prisma/client";
 import { SubmissionEnded } from "../../components/lottie";
 import DoneIllustration from "../../assets/done.svg";
+import toast, { Toaster } from "react-hot-toast";
 
 export const getServerSideProps = async ({
   params,
@@ -92,9 +93,13 @@ const Submission = ({
   );
 };
 
+const requestSuccessToast = () =>
+  toast("Song request sent!", {
+    duration: 1500,
+  });
+
 type RequestInput = inferMutationInput<"request.request">;
 
-let firstRender = true;
 const SubmissionContent = ({
   submission,
   requestsLeft,
@@ -102,25 +107,26 @@ const SubmissionContent = ({
   submission: Submission;
   requestsLeft: number | null;
 }) => {
-  const router = useRouter();
   const mutation = trpc.useMutation(["request.search"]);
   const requestMutation = trpc.useMutation(["request.request"], {
-    onSuccess: () => router.replace("."),
+    onSuccess: () => {
+      requestSuccessToast();
+      mutation.reset();
+    },
   });
+  const noSearchData = !mutation.data;
 
   const handleRequest = (trackId: RequestInput["trackId"]) => {
+    if (requestMutation.isLoading) return;
     requestMutation.mutate({ trackId, submissionId: submission.id });
   };
-
-  useEffect(() => {
-    firstRender = false;
-  }, []);
 
   return (
     <>
       <Head>
         <title>Live Submission | RequestD</title>
       </Head>
+      <Toaster />
       <header className="mx-auto my-8 w-10/12 max-w-xl">
         <h1 className="text-2xl font-semibold ">
           {submission.id} Live submission
@@ -181,7 +187,7 @@ const SubmissionContent = ({
             </div>
           </form>
         </div>
-        {firstRender && <NewReleases onRequest={handleRequest} />}
+        {noSearchData && <NewReleases onRequest={handleRequest} />}
         {mutation.data && (
           <ul className="my-6 space-y-4">
             {mutation.data.map((item) => {

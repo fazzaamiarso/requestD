@@ -59,6 +59,7 @@ const OwnerSubmissionContent = ({
 
   const mutation = trpc.useMutation(["submission.add-to-playlist"], {
     onSuccess: () => utils.invalidateQueries(["submission.tracks"]),
+    onError: () => console.log("Error here"),
   });
   const deleteRequest = trpc.useMutation(["submission.reject"], {
     onSuccess: () => utils.invalidateQueries(["submission.tracks"]),
@@ -156,7 +157,7 @@ const OwnerSubmissionContent = ({
           </header>
         )
       )}
-      <main className="mx-auto mt-12 w-11/12 max-w-4xl">
+      <main className="mx-auto my-12 w-11/12 max-w-4xl">
         <h2 className="mb-4 text-xl font-bold">Pending Requests</h2>
         <div className="h-px w-full bg-cardBg" />
         {!isTrackLoading && !trackData?.tracks.length && <EmptyState />}
