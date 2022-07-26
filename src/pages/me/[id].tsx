@@ -2,31 +2,31 @@ import Head from "next/head";
 import Image from "next/image";
 import { NextRouter, useRouter } from "next/router";
 import { trpc } from "../../utils/trpc";
-import { CalendarIcon, CheckIcon, XIcon } from "@heroicons/react/solid";
+import {
+  CalendarIcon,
+  CheckIcon,
+  TicketIcon,
+  XIcon,
+} from "@heroicons/react/solid";
 import {
   ClipboardCopyIcon,
   PauseIcon,
   PlayIcon,
   StopIcon,
 } from "@heroicons/react/outline";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
+import { dayjs } from "../../lib/dayjs";
 import NoDataIllustration from "../../assets/no-data.svg";
 import { SubmissionChips } from "../../components/status-chips";
-dayjs.extend(relativeTime);
-
-const copyToClipboard = (content: string) => {
-  navigator.clipboard.writeText(content);
-};
+import { ReactNode, useEffect } from "react";
+import { copyToClipboard } from "../../utils/client-helper";
 
 const OwnerSubmission = () => {
   const router = useRouter();
   const { id } = router.query;
 
-  if (typeof id !== "string")
-    return (
-      <h1 className="text-3xl font-bold">No submission found with this Id</h1>
-    );
+  if (typeof id !== "string") {
+    return null;
+  }
 
   return <OwnerSubmissionContent submissionId={id} router={router} />;
 };
@@ -44,7 +44,7 @@ const OwnerSubmissionContent = ({
     { submissionId },
   ]);
 
-  const { data: trackData } = trpc.useQuery([
+  const { data: trackData, isLoading: isTrackLoading } = trpc.useQuery([
     "submission.tracks",
     { submissionId },
   ]);
@@ -59,13 +59,14 @@ const OwnerSubmissionContent = ({
     onSuccess: () => utils.invalidateQueries(["submission.detail"]),
   });
 
-  if (isLoading) return <p>Loading submission...</p>;
-  if (!data) {
-    return <p>No submission with this id</p>;
-  }
+  useEffect(() => {
+    if (!isLoading && !data) {
+      window.location.replace("/404");
+    }
+  }, [data, isLoading]);
 
-  const isPaused = data.submission.status === "PAUSED";
-  const isEnded = data.submission.status === "ENDED";
+  const isPaused = data?.submission.status === "PAUSED";
+  const isEnded = data?.submission.status === "ENDED";
   const handleResume = () =>
     statusMutation.mutate({ status: "ONGOING", submissionId });
   const handleEnd = () =>
@@ -76,58 +77,82 @@ const OwnerSubmissionContent = ({
   const handlePause = () =>
     statusMutation.mutate({ status: "PAUSED", submissionId });
 
+  const handleReject = (requestId: string) =>
+    deleteRequest.mutate({ requestId });
+  const handleAccept = (requestData: { requestId: string; uri: string }) => {
+    if (!data) return;
+    mutation.mutate({
+      playlistId: data.playlist.id,
+      tracksData: [requestData],
+    });
+  };
+
   return (
     <>
       <Head>
-        <title>Spotify - NGL | {submissionId}</title>
+        <title>RequestD | {data?.playlist.name}</title>
       </Head>
-      <header className="mx-auto mt-6 flex w-11/12 max-w-4xl items-center ">
-        <div className="flex flex-col space-y-1">
-          <h1 className=" flex items-center gap-3 text-3xl font-bold">
-            {data.playlist.name}
-            <SubmissionChips status={data.submission.status} />
-          </h1>
-          <div>
-            <span className="flex items-center gap-1 text-sm text-textBody">
-              <CalendarIcon className="h-4" />
-              {dayjs(data.submission.createdAt).fromNow()}
-            </span>
-          </div>
-        </div>
-        <div className="ml-auto flex items-center gap-4">
-          {isPaused || isEnded ? (
-            <button onClick={handleResume} className="flex items-center gap-1">
-              <PlayIcon className="h-6 sm:h-5" />{" "}
-              <span className="hidden sm:inline">Resume</span>
-            </button>
-          ) : (
-            <button onClick={handlePause} className="flex items-center gap-1">
-              <PauseIcon className="h-6 sm:h-5" />{" "}
-              <span className="hidden sm:inline">Pause</span>
-            </button>
-          )}
-          {isEnded ? null : (
-            <button onClick={handleEnd} className="flex items-center gap-1">
-              <StopIcon className="h-6 sm:h-5" />{" "}
-              <span className="hidden sm:inline">End</span>
-            </button>
-          )}
+      {isLoading ? (
+        <HeaderSkeleton />
+      ) : (
+        data && (
+          <header className="mx-auto mt-6 flex w-11/12 max-w-4xl flex-col  items-start gap-4 sm:flex-row sm:items-center ">
+            <div className="flex flex-col space-y-1">
+              <h1 className=" flex items-center gap-3 text-3xl font-bold">
+                {data.playlist.name}
+                <SubmissionChips status={data.submission.status} />
+              </h1>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 text-sm text-textBody">
+                  <CalendarIcon className="h-4" />
+                  {data.submission.endsAt
+                    ? `Ends ${dayjs(data.submission.endsAt).fromNow()}`
+                    : "No duration set"}
+                </span>
+                <span className="flex items-center gap-1 text-sm text-textBody">
+                  <TicketIcon className="h-4" />
+                  {data.submission.personRequestLimit
+                    ? `${data.submission.personRequestLimit} request limit`
+                    : "No request limit"}
+                </span>
+              </div>
+            </div>
+            <div className="ml-auto flex items-center gap-4 sm:gap-8">
+              {isPaused || isEnded ? (
+                <SubmissionButton iconType="play" onClick={handleResume}>
+                  Resume
+                </SubmissionButton>
+              ) : (
+                <SubmissionButton iconType="pause" onClick={handlePause}>
+                  Pause
+                </SubmissionButton>
+              )}
+              {isEnded ? null : (
+                <SubmissionButton iconType="end" onClick={handleEnd}>
+                  End
+                </SubmissionButton>
+              )}
 
-          <button
-            onClick={() =>
-              copyToClipboard(`${location.origin}/submission/${submissionId}`)
-            }
-            className="flex items-center gap-1 rounded-sm p-2 text-textBody ring-1 ring-textHeading"
-          >
-            <ClipboardCopyIcon className="h-6 sm:h-5" />
-            <span className="hidden sm:inline">Copy link</span>
-          </button>
-        </div>
-      </header>
+              <button
+                onClick={() =>
+                  copyToClipboard(
+                    `${location.origin}/submission/${submissionId}`
+                  )
+                }
+                className="flex items-center gap-1 rounded-sm p-2 text-materialPurple-200 ring-1 ring-materialPurple-200 transition-colors hover:bg-materialPurple-100"
+              >
+                <ClipboardCopyIcon className="h-6 sm:h-5 " />
+                <span className="hidden sm:inline">Copy link</span>
+              </button>
+            </div>
+          </header>
+        )
+      )}
       <main className="mx-auto mt-12 w-11/12 max-w-4xl">
         <h2 className="mb-4 text-xl font-bold">Pending Requests</h2>
         <div className="h-px w-full bg-cardBg" />
-        {!trackData?.tracks.length && <EmptyState />}
+        {!isTrackLoading && !trackData?.tracks.length && <EmptyState />}
+        {isTrackLoading && <CardSkeleton />}
         <ul className="my-8 space-y-4 empty:hidden">
           {trackData &&
             trackData.tracks.map((track) => {
@@ -152,18 +177,13 @@ const OwnerSubmissionContent = ({
                   </div>
                   <div className="ml-auto flex items-center gap-4">
                     <button
-                      onClick={() => {
-                        mutation.mutate({
-                          playlistId: data.playlist.id,
-                          tracksData: [
-                            {
-                              requestId: track.requestId,
-                              uri: track.uri,
-                            },
-                          ],
-                        });
-                      }}
-                      className="flex items-center gap-1 rounded-sm bg-inputBg p-2"
+                      onClick={() =>
+                        handleAccept({
+                          requestId: track.requestId,
+                          uri: track.uri,
+                        })
+                      }
+                      className="flex items-center gap-1 rounded-sm bg-inputBg p-2 transition-opacity hover:opacity-80"
                     >
                       <CheckIcon className="h-6 text-green-400" />
                       <span className="hidden text-textBody sm:inline">
@@ -171,10 +191,8 @@ const OwnerSubmissionContent = ({
                       </span>
                     </button>
                     <button
-                      onClick={() => {
-                        deleteRequest.mutate({ requestId: track.requestId });
-                      }}
-                      className="flex items-center gap-1 rounded-sm bg-inputBg p-2"
+                      onClick={() => handleReject(track.requestId)}
+                      className="flex items-center gap-1 rounded-sm bg-inputBg p-2 transition-opacity hover:opacity-80"
                     >
                       <XIcon className="h-6 text-red-400" />
                       <span className="hidden text-textBody sm:inline">
@@ -193,6 +211,33 @@ const OwnerSubmissionContent = ({
 
 export default OwnerSubmission;
 
+const submissionButtonIcons = {
+  pause: PauseIcon,
+  play: PlayIcon,
+  end: StopIcon,
+} as const;
+
+const SubmissionButton = ({
+  onClick,
+  iconType,
+  children,
+}: {
+  onClick: () => void;
+  iconType: keyof typeof submissionButtonIcons;
+  children: ReactNode;
+}) => {
+  const Icon = submissionButtonIcons[iconType];
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 transition-all hover:text-materialPurple-200"
+    >
+      <Icon className="h-6 sm:h-5" />
+      <span className="hidden sm:inline">{children}</span>
+    </button>
+  );
+};
+
 const EmptyState = () => {
   return (
     <div className="mt-28 flex w-full flex-col items-center gap-2 ">
@@ -205,6 +250,28 @@ const EmptyState = () => {
       <p className=" text-lg  text-materialPurple-100">
         There are no song requests yet!
       </p>
+    </div>
+  );
+};
+
+const HeaderSkeleton = () => {
+  return (
+    <div className="mx-auto mt-8 w-11/12 max-w-4xl animate-pulse space-y-2">
+      <div className="h-8 w-5/12 rounded-md bg-inputBg" />
+      <div className="h-4 w-3/12 rounded-md bg-inputBg" />
+    </div>
+  );
+};
+
+const CardSkeleton = () => {
+  return (
+    <div className="mt-8 animate-pulse space-y-4">
+      <div className="h-16 w-full rounded-md bg-inputBg" />
+      <div className="h-16 w-full rounded-md bg-inputBg" />
+      <div className="h-16 w-full rounded-md bg-inputBg" />
+      <div className="h-16 w-full rounded-md bg-inputBg" />
+      <div className="h-16 w-full rounded-md bg-inputBg" />
+      <div className="h-16 w-full rounded-md bg-inputBg" />
     </div>
   );
 };

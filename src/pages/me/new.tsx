@@ -7,19 +7,24 @@ const NewSubmission = () => {
   const [isDurationOn, setIsDurationOn] = useState(false);
   const [isRequestLimitOn, setIsRequestLimitOn] = useState(false);
   const mutation = trpc.useMutation("submission.create");
+
   return (
     <>
       <Head>
-        <title>New Submission | Spotify - NGL</title>
+        <title>New Submission | RequestD</title>
       </Head>
       <header className="mx-auto mt-8 w-10/12 max-w-2xl">
         <h1 className="text-3xl font-bold">New Submission</h1>
+        <p className="text-textBody">
+          This will create a new playlist on Spotify
+        </p>
       </header>
       <main className="mx-auto my-12 w-10/12 max-w-2xl">
         <form
           className="w-full  space-y-6 rounded-md bg-cardBg p-6"
           onSubmit={(e) => {
             e.preventDefault();
+            if (mutation.isLoading) return;
             const formData = new FormData(e.currentTarget);
             const title = formData.get("title") as string;
             const duration = formData.get("duration") as string;
@@ -97,7 +102,7 @@ const NewSubmission = () => {
           </div>
           <button
             type="submit"
-            className="flex items-center gap-1 rounded-sm bg-materialPurple-200 p-3 font-semibold text-darkBg"
+            className="flex items-center gap-1 rounded-sm bg-materialPurple-200 p-3 font-semibold text-darkBg transition-all hover:opacity-80"
           >
             <PlusIcon className="h-5 " />
             Create

@@ -10,11 +10,10 @@ import Image from "next/image";
 import { InboxInIcon } from "@heroicons/react/outline";
 import { useEffect } from "react";
 import musicIllustration from "../../assets/happy-music.svg";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
+import { dayjs } from "../../lib/dayjs";
 import { Submission } from "@prisma/client";
 import { SubmissionEnded } from "../../components/lottie";
-dayjs.extend(relativeTime);
+import DoneIllustration from "../../assets/done.svg";
 
 export const getServerSideProps = async ({
   params,
@@ -26,7 +25,10 @@ export const getServerSideProps = async ({
     where: { id },
   });
 
+  if (!submission) return createRedirect("/404");
+
   const isSubmissionOwner = session?.user?.id === submission?.userId;
+
   if (isSubmissionOwner) return createRedirect(`/me/${id}`);
 
   if (
@@ -50,6 +52,7 @@ export const getServerSideProps = async ({
   }
 
   submission = JSON.parse(JSON.stringify(submission));
+  if (!submission) return createRedirect("/404");
   return {
     props: {
       submission,
@@ -62,14 +65,27 @@ const Submission = ({
   submission,
   requestsLeft,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
-  if (!submission) return <h1>No submission with this Id found!</h1>;
-
-  if (requestsLeft && requestsLeft === 0)
-    return <h1>You have used all your request</h1>;
+  if (requestsLeft && requestsLeft <= 0)
+    return (
+      <IllustrationPage
+        illustration={DoneIllustration}
+        message="You have used all of your requests."
+      />
+    );
   if (submission.status === "ENDED")
-    return <EndedPage message="Sorry, the submission has ended!" />;
+    return (
+      <EndedPage
+        LottieComponent={SubmissionEnded}
+        message="Sorry, the submission has ended!"
+      />
+    );
   if (submission.status === "PAUSED")
-    return <EndedPage message="Submission has been paused by the owner." />;
+    return (
+      <EndedPage
+        LottieComponent={SubmissionEnded}
+        message="Submission has been paused by the owner."
+      />
+    );
 
   return (
     <SubmissionContent submission={submission} requestsLeft={requestsLeft} />
@@ -89,7 +105,7 @@ const SubmissionContent = ({
   const router = useRouter();
   const mutation = trpc.useMutation(["request.search"]);
   const requestMutation = trpc.useMutation(["request.request"], {
-    onSuccess: () => router.replace("/thank-you"),
+    onSuccess: () => router.replace("."),
   });
 
   const handleRequest = (trackId: RequestInput["trackId"]) => {
@@ -116,7 +132,7 @@ const SubmissionContent = ({
         )}
         {requestsLeft && submission.personRequestLimit && (
           <span className="text-sm text-textBody">
-            {requestsLeft}/{submission.personRequestLimit} request left
+            {requestsLeft}/{submission.personRequestLimit} requests left
           </span>
         )}
         <div className="mt-4 h-px w-full bg-cardBg" />
@@ -207,12 +223,12 @@ const RequestCard = ({
       <Image src={coverImage} alt={name} height={50} width={50} />
       <div className="ml-4">
         <h3 className="font-semibold sm:text-lg">{name}</h3>
-        <h4 className="s text-sm text-textBody">{artistName}</h4>
+        <h4 className=" text-sm text-textBody">{artistName}</h4>
       </div>
       <button
         type="button"
         onClick={() => onRequest(trackId)}
-        className="ml-auto flex items-center gap-2 rounded-md bg-inputBg  p-2 text-textBody"
+        className="ml-auto flex items-center gap-2 rounded-md bg-inputBg p-2 text-textBody transition-all  hover:text-textHeading hover:opacity-90"
       >
         <InboxInIcon className="h-7 sm:h-6" />{" "}
         <span className="hidden text-sm sm:inline">Request</span>
@@ -250,10 +266,31 @@ const NewReleases = ({
   );
 };
 
-const EndedPage = ({ message }: { message: string }) => {
+const IllustrationPage = ({
+  illustration,
+  message,
+}: {
+  illustration: string;
+  message: string;
+}) => {
   return (
     <div className="mt-24 flex w-screen flex-col items-center justify-center">
-      <SubmissionEnded />
+      <Image src={illustration} alt={message} height={300} width={300} />
+      <h1 className=" text-2xl font-bold">{message}</h1>
+    </div>
+  );
+};
+
+const EndedPage = ({
+  message,
+  LottieComponent,
+}: {
+  message: string;
+  LottieComponent: () => JSX.Element;
+}) => {
+  return (
+    <div className="mt-24 flex w-screen flex-col items-center justify-center">
+      <LottieComponent />
       <h1 className="-mt-12 text-xl font-bold">{message}</h1>
     </div>
   );

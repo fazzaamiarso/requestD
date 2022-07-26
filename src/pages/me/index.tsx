@@ -5,14 +5,14 @@ import { GetServerSidePropsContext } from "next";
 import { getSession, signOut } from "next-auth/react";
 import { createRedirect } from "../../utils/server-helper";
 import { ClipboardCopyIcon, LogoutIcon } from "@heroicons/react/solid";
-import relativeTime from "dayjs/plugin/relativeTime";
-import dayjs from "dayjs";
+import { dayjs } from "../../lib/dayjs";
 import { TrashIcon } from "@heroicons/react/outline";
 import { SubmissionChips } from "../../components/status-chips";
 import EmptyIllustration from "../../assets/sub-empty.svg";
-dayjs.extend(relativeTime);
 
 import { LoadingSpinner } from "../../components/lottie";
+import { copyToClipboard } from "../../utils/client-helper";
+import Head from "next/head";
 
 export const getServerSideProps = async ({
   req,
@@ -20,10 +20,6 @@ export const getServerSideProps = async ({
   const session = await getSession({ req });
   if (!session?.user) return createRedirect("/");
   return { props: {} };
-};
-
-const copyToClipboard = (content: string) => {
-  navigator.clipboard.writeText(content);
 };
 
 const AdminDashboard = () => {
@@ -35,14 +31,17 @@ const AdminDashboard = () => {
 
   return (
     <>
+      <Head>
+        <title>Dashboard | RequestD</title>
+      </Head>
       <header className="mb-20  bg-[#262627] py-6 ">
         <div className=" mx-auto flex w-10/12 ">
           <div className="text-3xl font-bold">LOGO</div>
           <button
             onClick={() => signOut()}
-            className="ml-auto flex items-center gap-2 rounded-sm p-2 text-materialPurple-200 ring-1 ring-materialPurple-200"
+            className="ml-auto flex items-center gap-2 rounded-sm p-2 text-materialPurple-200 ring-1 ring-materialPurple-200 transition-colors hover:bg-materialPurple-50"
           >
-            <span>Logout</span>
+            <span className="text-sm">Logout</span>
             <LogoutIcon className="h-5" />
           </button>
         </div>
@@ -51,18 +50,18 @@ const AdminDashboard = () => {
         <div className="flex">
           <h1 className="text-2xl font-bold">Submissions</h1>
           <Link href="/me/new">
-            <a className="ml-auto inline-block rounded-sm bg-materialPurple-400 p-2 px-4 text-textHeading">
+            <a className="ml-auto inline-block rounded-sm bg-materialPurple-400 p-2 px-4 text-textHeading transition-opacity hover:opacity-80">
               New submission
             </a>
           </Link>
         </div>
         {!isLoading && !data?.playlists.length && <EmptyState />}
-        <ul className="mt-6 grid grid-cols-1 gap-4 empty:hidden lg:grid-cols-2">
-          {isLoading && (
-            <div className="mt-12">
-              <LoadingSpinner />
-            </div>
-          )}
+        {isLoading && (
+          <div className="mx-auto mt-12">
+            <LoadingSpinner />
+          </div>
+        )}
+        <ul className="mt-10 grid grid-cols-1 gap-4  empty:hidden lg:grid-cols-2">
           {!isLoading &&
             data &&
             data.playlists.map(({ playlist, submission }) => {
@@ -81,7 +80,7 @@ const AdminDashboard = () => {
                       {dayjs(submission.createdAt).fromNow()}
                     </p>
                   </div>
-                  <div className="mt-8 flex items-center gap-8 sm:ml-auto sm:mt-0 sm:gap-6">
+                  <div className="mt-8 flex w-full items-center gap-8 sm:ml-auto sm:mt-0 sm:w-max sm:gap-6">
                     <button
                       onClick={() =>
                         deleteMutation.mutate({ submissionId: submission.id })
@@ -99,7 +98,7 @@ const AdminDashboard = () => {
                       <ClipboardCopyIcon className="h-6 " />
                     </button>
                     <Link href={`/me/${submission.id}`}>
-                      <a className="rounded-sm bg-inputBg p-2 px-3 text-materialPurple-200">
+                      <a className="ml-auto rounded-sm bg-inputBg p-2 px-3 text-materialPurple-200 transition-all hover:text-materialPurple-100 hover:opacity-90 sm:ml-0">
                         Go to live
                       </a>
                     </Link>

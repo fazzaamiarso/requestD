@@ -7,9 +7,7 @@ import {
   getTrack,
 } from "../../lib/spotify";
 import { createProtectedRouter } from "./context";
-import relativeTime from "dayjs/plugin/relativeTime";
-import dayjs from "dayjs";
-dayjs.extend(relativeTime);
+import { dayjs } from "../../lib/dayjs";
 
 const submissionRouter = createProtectedRouter()
   .query("all", {
