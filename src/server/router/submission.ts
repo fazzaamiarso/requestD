@@ -149,6 +149,15 @@ const submissionRouter = createProtectedRouter()
           status: input.status,
         },
       });
+
+      if (input.status === "ONGOING") {
+        await ctx.prisma.submission.update({
+          where: { id: input.submissionId },
+          data: {
+            endsAt: undefined,
+          },
+        });
+      }
       if (input.status === "ENDED") {
         await ctx.prisma.requestedTrack.deleteMany({
           where: { submissionId: input.submissionId },
