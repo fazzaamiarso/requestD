@@ -19,7 +19,7 @@ const Home: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Spotify-ngl</title>
+        <title>RequestD | Home</title>
       </Head>
       <main className="container mx-auto flex h-screen flex-col items-center justify-center p-4">
         <h1>Landing Page</h1>

@@ -1,5 +1,14 @@
 import { z } from "zod";
-import { env } from "../server/env.mjs";
+import { env } from "../../server/env.mjs";
+import {
+  playlistsSchema,
+  profileSchema,
+  playlistSchema,
+  searchTracksSchema,
+  trackSchema,
+  newReleasesSchema,
+  albumSchema,
+} from "./schema";
 
 const client_id = env.SPOTIFY_CLIENT_ID;
 const client_secret = env.SPOTIFY_CLIENT_SECRET;
@@ -9,65 +18,6 @@ const TOKEN_ENDPOINT = `https://accounts.spotify.com/api/token`;
 const BASE_ENDPOINT = "https://api.spotify.com/v1";
 const PLAYLISTS_ENDPOINT = `${BASE_ENDPOINT}/me/playlists`;
 const MY_PROFILE_ENDPOINT = `${BASE_ENDPOINT}/me`;
-
-const imageSchema = z.object({
-  url: z.string(),
-  height: z.number(),
-  width: z.number(),
-});
-
-const playlistSchema = z.object({
-  id: z.string(),
-  images: z.array(imageSchema),
-  name: z.string(),
-});
-
-const playlistsSchema = z.object({
-  items: z.array(playlistSchema),
-  href: z.string(),
-  limit: z.number(),
-  next: z.string().nullable(),
-  offset: z.number(),
-  previous: z.string().nullable(),
-  total: z.number(),
-});
-
-const profileSchema = z.object({
-  id: z.string(),
-  display_name: z.string(),
-  images: z.array(imageSchema),
-});
-
-const trackSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  uri: z.string(),
-  album: z.object({ images: z.array(imageSchema) }),
-  artists: z.array(
-    z.object({
-      name: z.string(),
-      id: z.string(),
-    })
-  ),
-});
-const searchTracksSchema = z.object({
-  tracks: z.object({
-    items: z.array(trackSchema),
-  }),
-});
-
-const albumSchema = z.object({
-  id: z.string(),
-  images: z.array(imageSchema),
-  tracks: z.object({
-    items: z.array(trackSchema.omit({ album: true })),
-  }),
-});
-const newReleasesSchema = z.object({
-  albums: z.object({
-    items: z.array(z.object({ id: z.string() })),
-  }),
-});
 
 const getAccessToken = async (refresh_token: string) => {
   const response = await fetch(TOKEN_ENDPOINT, {

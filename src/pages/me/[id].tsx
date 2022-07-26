@@ -103,18 +103,16 @@ const OwnerSubmissionContent = ({
                 <SubmissionChips status={data.submission.status} />
               </h1>
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-sm text-textBody">
-                  <CalendarIcon className="h-4" />
+                <SubmissionMeta Icon={CalendarIcon}>
                   {data.submission.endsAt
                     ? `Ends ${dayjs(data.submission.endsAt).fromNow()}`
                     : "No duration set"}
-                </span>
-                <span className="flex items-center gap-1 text-sm text-textBody">
-                  <TicketIcon className="h-4" />
+                </SubmissionMeta>
+                <SubmissionMeta Icon={TicketIcon}>
                   {data.submission.personRequestLimit
                     ? `${data.submission.personRequestLimit} request limit`
                     : "No request limit"}
-                </span>
+                </SubmissionMeta>
               </div>
             </div>
             <div className="ml-auto flex items-center gap-4 sm:gap-8">
@@ -210,6 +208,21 @@ const OwnerSubmissionContent = ({
 };
 
 export default OwnerSubmission;
+
+const SubmissionMeta = ({
+  children,
+  Icon,
+}: {
+  children: ReactNode;
+  Icon: (props: React.ComponentProps<"svg">) => JSX.Element;
+}) => {
+  return (
+    <span className="flex items-center gap-1 text-sm text-textBody">
+      <Icon className="h-4" />
+      {children}
+    </span>
+  );
+};
 
 const submissionButtonIcons = {
   pause: PauseIcon,
