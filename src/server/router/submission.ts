@@ -27,6 +27,12 @@ const submissionRouter = createProtectedRouter()
             ctx.session.access_token,
             s.spotifyPlaylistId
           );
+          if (!playlistDetail) {
+            await ctx.prisma.submission.delete({
+              where: { id: s.id },
+            });
+            return {};
+          }
           return {
             submission: { id: s.id, createdAt: s.createdAt, status: s.status },
             playlist: playlistDetail,
@@ -49,6 +55,12 @@ const submissionRouter = createProtectedRouter()
         ctx.session.access_token,
         submission.spotifyPlaylistId
       );
+      if (!playlist) {
+        await ctx.prisma.submission.delete({
+          where: { id: submission.id },
+        });
+        throw Error("No playlist found! Potentially deleted by the owner");
+      }
       return { submission, playlist };
     },
   })

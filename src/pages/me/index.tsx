@@ -81,6 +81,7 @@ const AdminDashboard = () => {
           {!isLoading &&
             data &&
             data.playlists.map(({ playlist, submission }) => {
+              if (!playlist || !submission) return null;
               return (
                 <li
                   key={playlist.id}

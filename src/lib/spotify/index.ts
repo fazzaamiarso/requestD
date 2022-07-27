@@ -98,8 +98,9 @@ const getPlaylistDetail = async (refresh_token: string, playlistId: string) => {
       "Content-Type": "application/json",
     },
   });
-  const playlistDetail = playlistSchema.parse(await res.json());
-  return playlistDetail;
+  const playlistDetail = playlistSchema.safeParse(await res.json());
+  if (!playlistDetail.success) throw Error(playlistDetail.error.message);
+  return playlistDetail.data;
 };
 
 const searchTracks = async (q: string) => {

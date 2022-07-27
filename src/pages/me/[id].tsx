@@ -41,6 +41,14 @@ const copyToast = (toastId: string) =>
     position: "top-center",
   });
 
+const confirmationToast = (toastId: string, message: string) => {
+  toast(message, {
+    id: toastId,
+    duration: 1500,
+    position: "top-center",
+  });
+};
+
 const OwnerSubmissionContent = ({
   submissionId,
   router,
@@ -87,13 +95,22 @@ const OwnerSubmissionContent = ({
     statusMutation.mutate({ status: "PAUSED", submissionId });
 
   const handleReject = (requestId: string) =>
-    deleteRequest.mutate({ requestId });
+    deleteRequest.mutate(
+      { requestId },
+      { onSuccess: () => confirmationToast(requestId, "Request rejected.") }
+    );
   const handleAccept = (requestData: { requestId: string; uri: string }) => {
     if (!data) return;
-    mutation.mutate({
-      playlistId: data.playlist.id,
-      tracksData: [requestData],
-    });
+    mutation.mutate(
+      {
+        playlistId: data.playlist.id,
+        tracksData: [requestData],
+      },
+      {
+        onSuccess: () =>
+          confirmationToast(requestData.requestId, "Request accepted."),
+      }
+    );
   };
 
   return (
