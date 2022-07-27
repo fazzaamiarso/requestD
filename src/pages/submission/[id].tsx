@@ -8,7 +8,6 @@ import Head from "next/head";
 import { SearchIcon } from "@heroicons/react/solid";
 import Image from "next/image";
 import { InboxInIcon } from "@heroicons/react/outline";
-import { useEffect, useRef } from "react";
 import musicIllustration from "../../assets/happy-music.svg";
 import { dayjs } from "../../lib/dayjs";
 import { Submission } from "@prisma/client";
@@ -47,7 +46,7 @@ export const getServerSideProps = async ({
   if (submission && submission.personRequestLimit) {
     const submissionToken = req.cookies["submission-token"];
     const requestCount = await prisma.requestedTrack.count({
-      where: { request_token: submissionToken },
+      where: { submissionId: submission.id, request_token: submissionToken },
     });
     requestsLeft = submission.personRequestLimit - requestCount;
   }
@@ -107,11 +106,13 @@ const SubmissionContent = ({
   submission: Submission;
   requestsLeft: number | null;
 }) => {
+  const router = useRouter();
   const mutation = trpc.useMutation(["request.search"]);
   const requestMutation = trpc.useMutation(["request.request"], {
     onSuccess: () => {
       requestSuccessToast();
       mutation.reset();
+      router.replace(`/submission/${submission.id}`);
     },
   });
   const noSearchData = !mutation.data;
@@ -160,6 +161,7 @@ const SubmissionContent = ({
           <form
             className=" w-full "
             onSubmit={(e) => {
+              if (mutation.isLoading) return;
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               const query = formData.get("search");
