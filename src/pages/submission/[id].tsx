@@ -22,6 +22,8 @@ import toast, { Toaster } from "react-hot-toast";
 import { getPlaylistDetail, getPublicUserProfile } from "@/lib/spotify";
 import { SpotifyPlaylist, SpotifyUser } from "@/lib/spotify/schema";
 import { SubmissionMeta } from "@/components/submission-meta";
+import { SearchBySpotify } from "@/components/atrributions/spotify";
+import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 
 export const getServerSideProps = async ({
   params,
@@ -184,16 +186,16 @@ const SubmissionContent = ({
         </SubmissionMeta>
         <div className="mt-4 h-px w-full bg-cardBg" />
       </header>
-      <main className="mx-auto mt-8 w-10/12  max-w-xl ">
+      <main className="mx-auto my-12 w-10/12  max-w-xl ">
         <div className="flex w-full flex-col space-y-6">
-          <div className="text-center ">
+          <div className="mb-8 text-center ">
             <Image
               src={musicIllustration}
               alt="an illustration of a bird listening to music with headphone on"
               width={150}
               height={150}
             />
-            <h2 className="mt-8 text-xl font-semibold">Request a song</h2>
+            <h2 className="mt-2 text-xl font-semibold">Request a song</h2>
             <p className="text-textBody">
               Search for a song and click on the request button
             </p>
@@ -208,7 +210,8 @@ const SubmissionContent = ({
               mutation.mutate({ searchQuery: query as string });
             }}
           >
-            <div className="flex w-full items-center gap-4 ">
+            <SearchBySpotify />
+            <div className="mt-2 flex w-full items-center gap-4">
               <label htmlFor="search" className="sr-only text-lg font-semibold">
                 Search Tracks
               </label>
@@ -247,6 +250,9 @@ const SubmissionContent = ({
           </ul>
         )}
       </main>
+      <footer className="mx-auto mt-20 mb-8 flex w-10/12 max-w-xl flex-col items-center text-center text-textBody">
+        <FooterAttributions />
+      </footer>
     </>
   );
 };

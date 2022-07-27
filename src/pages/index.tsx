@@ -1,7 +1,8 @@
 import type { GetServerSidePropsContext, NextPage } from "next";
-import { getSession, signIn, signOut, useSession } from "next-auth/react";
+import { getSession, signOut, useSession } from "next-auth/react";
 import Head from "next/head";
 import { createRedirect } from "@/utils/server-helper";
+import { SpotifyLoginButton } from "@/components/atrributions/spotify";
 
 export const getServerSideProps = async ({
   req,
@@ -25,11 +26,7 @@ const Home: NextPage = () => {
         <h1>Landing Page</h1>
         <div>
           <>
-            {!session?.user && (
-              <button onClick={() => signIn("spotify", { callbackUrl: "/me" })}>
-                Login
-              </button>
-            )}
+            {!session?.user && <SpotifyLoginButton />}
             {session?.user && (
               <button onClick={() => signOut()}>Sign Out</button>
             )}

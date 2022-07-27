@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import GoBackButton from "@/components/go-back-button";
 import { trpc } from "@/utils/trpc";
+import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 
 const NewSubmission = () => {
   const router = useRouter();
@@ -113,6 +114,9 @@ const NewSubmission = () => {
           </button>
         </form>
       </main>
+      <footer className="mx-auto mt-20 mb-8 flex  w-10/12 max-w-2xl flex-col items-center text-center text-textBody">
+        <FooterAttributions />
+      </footer>
     </>
   );
 };

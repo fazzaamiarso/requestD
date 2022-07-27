@@ -20,6 +20,7 @@ import Head from "next/head";
 import toast, { Toaster } from "react-hot-toast";
 import { DialogBase } from "@/components/confirmation-dialog";
 import { useState } from "react";
+import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 
 export const getServerSideProps = async ({
   req,
@@ -74,7 +75,7 @@ const AdminDashboard = () => {
         <title>Dashboard | RequestD</title>
       </Head>
       <Toaster />
-      <header className="mb-20  bg-[#262627] py-6 ">
+      <header className="scrollbar  mb-20 bg-[#262627] py-6">
         <div className=" mx-auto flex w-10/12 ">
           <div className="text-3xl font-bold">LOGO</div>
           <div className="ml-auto flex items-center gap-10">
@@ -101,7 +102,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-10/12">
+      <main className="mx-auto min-h-screen w-10/12">
         <div className="flex">
           <h1 className="text-2xl font-bold">Submissions</h1>
           <Link href="/me/new">
@@ -132,6 +133,9 @@ const AdminDashboard = () => {
             })}
         </ul>
       </main>
+      <footer className="mx-auto mt-20 mb-8 flex  w-10/12 flex-col items-center text-center text-textBody">
+        <FooterAttributions />
+      </footer>
     </>
   );
 };

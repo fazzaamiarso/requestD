@@ -23,6 +23,7 @@ import { copyToClipboard } from "@/utils/client-helper";
 import toast, { Toaster } from "react-hot-toast";
 import GoBackButton from "@/components/go-back-button";
 import { SubmissionMeta } from "@/components/submission-meta";
+import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -74,7 +75,6 @@ const OwnerSubmissionContent = ({
 
   const mutation = trpc.useMutation(["submission.add-to-playlist"], {
     onSuccess: () => utils.invalidateQueries(["submission.tracks"]),
-    onError: () => console.log("Error here"),
   });
   const deleteRequest = trpc.useMutation(["submission.reject"], {
     onSuccess: () => utils.invalidateQueries(["submission.tracks"]),
@@ -176,7 +176,7 @@ const OwnerSubmissionContent = ({
           </header>
         )
       )}
-      <main className="mx-auto my-12 w-11/12 max-w-4xl">
+      <main className="mx-auto my-12 min-h-screen w-11/12 max-w-4xl">
         <h2 className="mb-4 text-xl font-bold">Pending Requests</h2>
         <div className="h-px w-full bg-cardBg" />
         {!isTrackLoading && !trackData?.tracks.length && <EmptyState />}
@@ -233,14 +233,14 @@ const OwnerSubmissionContent = ({
             })}
         </ul>
       </main>
+      <footer className="mx-auto mt-20 mb-8 flex w-11/12 max-w-4xl flex-col items-center text-center text-textBody">
+        <FooterAttributions />
+      </footer>
     </>
   );
 };
 
 export default OwnerSubmission;
-
-
-
 
 const submissionButtonIcons = {
   pause: PauseIcon,
