@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   addTracksToPlaylist,
   createPlaylist,
+  getMyProfile,
   getPlaylistDetail,
   getTrack,
 } from "@/lib/spotify";
@@ -39,6 +40,12 @@ const submissionRouter = createProtectedRouter()
       return {
         playlists,
       };
+    },
+  })
+  .query("my-profile", {
+    async resolve({ ctx }) {
+      const myProfile = await getMyProfile(ctx.session.access_token);
+      return myProfile;
     },
   })
   .query("detail", {

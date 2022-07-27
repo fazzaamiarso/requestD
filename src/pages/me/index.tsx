@@ -4,7 +4,11 @@ import Image from "next/image";
 import { GetServerSidePropsContext } from "next";
 import { getSession, signOut } from "next-auth/react";
 import { createRedirect } from "@/utils/server-helper";
-import { ClipboardCopyIcon, LogoutIcon } from "@heroicons/react/solid";
+import {
+  ClipboardCopyIcon,
+  LogoutIcon,
+  UserCircleIcon,
+} from "@heroicons/react/solid";
 import { dayjs } from "@/lib/dayjs";
 import { TrashIcon } from "@heroicons/react/outline";
 import { SubmissionChips } from "@/components/status-chips";
@@ -41,6 +45,7 @@ const deleteToast = (toastId: string, playlistName: string) =>
 
 const AdminDashboard = () => {
   const utils = trpc.useContext();
+  const { data: profile } = trpc.useQuery(["submission.my-profile"]);
   const { data, isLoading } = trpc.useQuery(["submission.all"]);
   const deleteMutation = trpc.useMutation(["submission.delete"], {
     onSuccess: () => utils.invalidateQueries(["submission.all"]),
@@ -72,13 +77,28 @@ const AdminDashboard = () => {
       <header className="mb-20  bg-[#262627] py-6 ">
         <div className=" mx-auto flex w-10/12 ">
           <div className="text-3xl font-bold">LOGO</div>
-          <button
-            onClick={() => signOut()}
-            className="ml-auto flex items-center gap-2 rounded-sm p-2 text-materialPurple-200 ring-1 ring-materialPurple-200 transition-colors hover:bg-materialPurple-50"
-          >
-            <span className="text-sm">Logout</span>
-            <LogoutIcon className="h-5" />
-          </button>
+          <div className="ml-auto flex items-center gap-10">
+            {profile?.images[0]?.url ? (
+              <Image
+                src={profile.images[0]?.url}
+                alt={profile.display_name}
+                height={44}
+                width={44}
+                className="rounded-full"
+              />
+            ) : (
+              <div className="aspect-square  rounded-full">
+                <UserCircleIcon className="h-8" />
+              </div>
+            )}
+            <button
+              onClick={() => signOut()}
+              className=" flex items-center gap-2 rounded-sm p-2 text-materialPurple-200 ring-1 ring-materialPurple-200 transition-colors hover:bg-materialPurple-50"
+            >
+              <span className="text-sm">Logout</span>
+              <LogoutIcon className="h-5" />
+            </button>
+          </div>
         </div>
       </header>
       <main className="mx-auto w-10/12">
