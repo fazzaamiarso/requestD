@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const imageSchema = z.object({
   url: z.string(),
-  height: z.number(),
-  width: z.number(),
+  height: z.number().nullish(),
+  width: z.number().nullish(),
 });
 
 export const playlistSchema = z.object({

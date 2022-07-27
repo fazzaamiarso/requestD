@@ -22,6 +22,7 @@ import { ReactNode } from "react";
 import { copyToClipboard } from "@/utils/client-helper";
 import toast, { Toaster } from "react-hot-toast";
 import GoBackButton from "@/components/go-back-button";
+import { SubmissionMeta } from "@/components/submission-meta";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -240,20 +241,6 @@ export default OwnerSubmission;
 
 
 
-const SubmissionMeta = ({
-  children,
-  Icon,
-}: {
-  children: ReactNode;
-  Icon: (props: React.ComponentProps<"svg">) => JSX.Element;
-}) => {
-  return (
-    <span className="flex items-center gap-1 text-sm text-textBody">
-      <Icon className="h-4" />
-      {children}
-    </span>
-  );
-};
 
 const submissionButtonIcons = {
   pause: PauseIcon,

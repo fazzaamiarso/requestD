@@ -1,4 +1,4 @@
-import { trpc } from "@/utils/trpc";
+import { inferQueryOutput, trpc } from "@/utils/trpc";
 import Link from "next/link";
 import Image from "next/image";
 import { GetServerSidePropsContext } from "next";
@@ -14,6 +14,8 @@ import { LoadingSpinner } from "@/components/lottie";
 import { copyToClipboard } from "@/utils/client-helper";
 import Head from "next/head";
 import toast, { Toaster } from "react-hot-toast";
+import { DialogBase } from "@/components/confirmation-dialog";
+import { useState } from "react";
 
 export const getServerSideProps = async ({
   req,
@@ -33,7 +35,7 @@ const copyToast = (toastId: string) =>
 const deleteToast = (toastId: string, playlistName: string) =>
   toast(`Submission for ${playlistName} deleted`, {
     id: toastId,
-    duration: 1500,
+    duration: 2500,
     position: "top-center",
   });
 
@@ -43,6 +45,23 @@ const AdminDashboard = () => {
   const deleteMutation = trpc.useMutation(["submission.delete"], {
     onSuccess: () => utils.invalidateQueries(["submission.all"]),
   });
+
+  const handleDeleteSubmission = ({
+    submissionId,
+    playlistName,
+  }: {
+    submissionId: string;
+    playlistName: string;
+  }) => {
+    deleteMutation.mutate(
+      { submissionId },
+      {
+        onSuccess() {
+          deleteToast(submissionId, playlistName);
+        },
+      }
+    );
+  };
 
   return (
     <>
@@ -83,52 +102,12 @@ const AdminDashboard = () => {
             data.playlists.map(({ playlist, submission }) => {
               if (!playlist || !submission) return null;
               return (
-                <li
-                  key={playlist.id}
-                  className="flex flex-col items-start rounded-md  bg-cardBg p-4 px-6 sm:flex-row sm:items-center"
-                >
-                  <div className="flex flex-col">
-                    <SubmissionChips
-                      status={submission.status}
-                      className="mb-1 p-0"
-                    />
-                    <h2 className="text-xl font-semibold">{playlist.name}</h2>
-                    <p className="text-xs text-textBody">
-                      {dayjs(submission.createdAt).fromNow()}
-                    </p>
-                  </div>
-                  <div className="mt-8 flex w-full items-center gap-8 sm:ml-auto sm:mt-0 sm:w-max sm:gap-6">
-                    <button
-                      onClick={() =>
-                        deleteMutation.mutate(
-                          { submissionId: submission.id },
-                          {
-                            onSuccess: () => {
-                              deleteToast(submission.id, playlist.name);
-                            },
-                          }
-                        )
-                      }
-                    >
-                      <TrashIcon className="h-6" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        copyToClipboard(
-                          `${location.origin}/submission/${submission.id}`
-                        );
-                        copyToast(playlist.id);
-                      }}
-                    >
-                      <ClipboardCopyIcon className="h-6 " />
-                    </button>
-                    <Link href={`/me/${submission.id}`}>
-                      <a className="ml-auto rounded-sm bg-inputBg p-2 px-3 text-materialPurple-200 transition-all hover:text-materialPurple-100 hover:opacity-90 sm:ml-0">
-                        Go to live
-                      </a>
-                    </Link>
-                  </div>
-                </li>
+                <SubmissionCard
+                  key={submission.id}
+                  submission={submission}
+                  playlist={playlist}
+                  onDelete={handleDeleteSubmission}
+                />
               );
             })}
         </ul>
@@ -138,6 +117,74 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
+type SubmissionCardProps = {
+  submission: NonNullable<
+    inferQueryOutput<"submission.all">["playlists"][0]["submission"]
+  >;
+  playlist: NonNullable<
+    inferQueryOutput<"submission.all">["playlists"][0]["playlist"]
+  >;
+  onDelete: (input: { submissionId: string; playlistName: string }) => void;
+};
+
+const SubmissionCard = ({
+  submission,
+  playlist,
+  onDelete,
+}: SubmissionCardProps) => {
+  const [isOpenDialog, setIsOpenDialog] = useState(false);
+
+  const handleCopyLink = () => {
+    copyToClipboard(`${location.origin}/submission/${submission.id}`);
+    copyToast(playlist.id);
+  };
+
+  const handleDelete = () => {
+    setIsOpenDialog(false);
+    onDelete({
+      submissionId: submission.id,
+      playlistName: playlist.name,
+    });
+  };
+  return (
+    <li className="flex flex-col items-start rounded-md  bg-cardBg p-4 px-6 sm:flex-row sm:items-center">
+      <div className="flex flex-col">
+        <SubmissionChips status={submission.status} className="mb-1 p-0" />
+        <h2 className="text-xl font-semibold">{playlist.name}</h2>
+        <p className="text-xs text-textBody">
+          {dayjs(submission.createdAt).fromNow()}
+        </p>
+      </div>
+      <div className="mt-8 flex w-full items-center gap-8 sm:ml-auto sm:mt-0 sm:w-max sm:gap-6">
+        <button onClick={() => setIsOpenDialog(true)}>
+          <TrashIcon className="h-6" />
+        </button>
+        <button onClick={handleCopyLink}>
+          <ClipboardCopyIcon className="h-6 " />
+        </button>
+        <Link href={`/me/${submission.id}`}>
+          <a className="ml-auto rounded-sm bg-inputBg p-2 px-3 text-materialPurple-200 transition-all hover:text-materialPurple-100 hover:opacity-90 sm:ml-0">
+            Go to live
+          </a>
+        </Link>
+      </div>
+      {isOpenDialog && (
+        <DialogBase
+          title={`Delete ${playlist.name}?`}
+          onConfirm={handleDelete}
+          onDismiss={() => setIsOpenDialog(false)}
+        >
+          <p className="text-sm text-textBody">
+            Are you sure you want to delete this submission? You still need to
+            manually delete the playlist in Spotify. This action cannot be
+            undone.
+          </p>
+        </DialogBase>
+      )}
+    </li>
+  );
+};
 
 const EmptyState = () => {
   return (

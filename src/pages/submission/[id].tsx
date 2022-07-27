@@ -5,7 +5,12 @@ import { inferMutationInput, trpc } from "@/utils/trpc";
 import { prisma } from "../../server/db/client";
 import { createRedirect } from "@/utils/server-helper";
 import Head from "next/head";
-import { SearchIcon, UserCircleIcon } from "@heroicons/react/solid";
+import {
+  CalendarIcon,
+  SearchIcon,
+  TicketIcon,
+  UserCircleIcon,
+} from "@heroicons/react/solid";
 import Image from "next/image";
 import { InboxInIcon } from "@heroicons/react/outline";
 import musicIllustration from "@/assets/happy-music.svg";
@@ -16,6 +21,7 @@ import DoneIllustration from "@/assets/done.svg";
 import toast, { Toaster } from "react-hot-toast";
 import { getPlaylistDetail, getPublicUserProfile } from "@/lib/spotify";
 import { SpotifyPlaylist, SpotifyUser } from "@/lib/spotify/schema";
+import { SubmissionMeta } from "@/components/submission-meta";
 
 export const getServerSideProps = async ({
   params,
@@ -152,8 +158,9 @@ const SubmissionContent = ({
             <Image
               src={playlist.ownerProfile.images[0]?.url}
               alt={playlist.ownerProfile.display_name}
-              height={50}
-              width={50}
+              height={32}
+              width={32}
+              className="rounded-full"
             />
           ) : (
             <div className="aspect-square  rounded-full">
@@ -165,16 +172,16 @@ const SubmissionContent = ({
         <h1 className="text-2xl font-semibold ">
           {playlist.playlistDetail.name} Live submission
         </h1>
-        {submission.endsAt && (
-          <span className="text-sm text-textBody">
-            submission will ends {dayjs(submission.endsAt).fromNow(false)}
-          </span>
-        )}
-        {requestsLeft && submission.personRequestLimit && (
-          <span className="text-sm text-textBody">
-            {requestsLeft}/{submission.personRequestLimit} requests left
-          </span>
-        )}
+        <SubmissionMeta Icon={CalendarIcon}>
+          {submission.endsAt
+            ? `Ends ${dayjs(submission.endsAt).fromNow()}`
+            : "No duration set"}
+        </SubmissionMeta>
+        <SubmissionMeta Icon={TicketIcon}>
+          {submission.personRequestLimit
+            ? `${requestsLeft} requests left`
+            : "No request limit"}
+        </SubmissionMeta>
         <div className="mt-4 h-px w-full bg-cardBg" />
       </header>
       <main className="mx-auto mt-8 w-10/12  max-w-xl ">
