@@ -5,7 +5,7 @@ import { inferMutationInput, trpc } from "@/utils/trpc";
 import { prisma } from "../../server/db/client";
 import { createRedirect } from "@/utils/server-helper";
 import Head from "next/head";
-import { SearchIcon } from "@heroicons/react/solid";
+import { SearchIcon, UserCircleIcon } from "@heroicons/react/solid";
 import Image from "next/image";
 import { InboxInIcon } from "@heroicons/react/outline";
 import musicIllustration from "@/assets/happy-music.svg";
@@ -14,6 +14,8 @@ import { Submission } from "@prisma/client";
 import { SubmissionEnded } from "@/components/lottie";
 import DoneIllustration from "@/assets/done.svg";
 import toast, { Toaster } from "react-hot-toast";
+import { getPlaylistDetail, getPublicUserProfile } from "@/lib/spotify";
+import { SpotifyPlaylist, SpotifyUser } from "@/lib/spotify/schema";
 
 export const getServerSideProps = async ({
   params,
@@ -24,11 +26,19 @@ export const getServerSideProps = async ({
   let submission = await prisma.submission.findFirst({
     where: { id },
   });
-
   if (!submission) return createRedirect("/404");
 
-  const isSubmissionOwner = session?.user?.id === submission?.userId;
+  const playlistDetail = await getPlaylistDetail(submission.spotifyPlaylistId);
+  if (!playlistDetail) {
+    await prisma.submission.delete({
+      where: { id: submission.id },
+    });
+    return createRedirect("/404");
+  }
 
+  const userProfile = await getPublicUserProfile(submission.spotifyUserId);
+
+  const isSubmissionOwner = session?.user?.id === submission?.userId;
   if (isSubmissionOwner) return createRedirect(`/me/${id}`);
 
   if (
@@ -56,6 +66,7 @@ export const getServerSideProps = async ({
   return {
     props: {
       submission,
+      playlist: { ownerProfile: userProfile, playlistDetail },
       requestsLeft,
     },
   };
@@ -63,6 +74,7 @@ export const getServerSideProps = async ({
 
 const Submission = ({
   submission,
+  playlist,
   requestsLeft,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
   if (requestsLeft && requestsLeft <= 0)
@@ -88,7 +100,11 @@ const Submission = ({
     );
 
   return (
-    <SubmissionContent submission={submission} requestsLeft={requestsLeft} />
+    <SubmissionContent
+      submission={submission}
+      requestsLeft={requestsLeft}
+      playlist={playlist}
+    />
   );
 };
 
@@ -102,9 +118,11 @@ type RequestInput = inferMutationInput<"request.request">;
 const SubmissionContent = ({
   submission,
   requestsLeft,
+  playlist,
 }: {
   submission: Submission;
   requestsLeft: number | null;
+  playlist: { ownerProfile: SpotifyUser; playlistDetail: SpotifyPlaylist };
 }) => {
   const router = useRouter();
   const mutation = trpc.useMutation(["request.search"]);
@@ -125,12 +143,27 @@ const SubmissionContent = ({
   return (
     <>
       <Head>
-        <title>Live Submission | RequestD</title>
+        <title>{playlist.playlistDetail.name} | RequestD</title>
       </Head>
       <Toaster />
       <header className="mx-auto my-8 w-10/12 max-w-xl">
+        <div className="mb-4 flex items-center gap-2 text-sm text-textBody">
+          {playlist.ownerProfile.images[0]?.url ? (
+            <Image
+              src={playlist.ownerProfile.images[0]?.url}
+              alt={playlist.ownerProfile.display_name}
+              height={50}
+              width={50}
+            />
+          ) : (
+            <div className="aspect-square  rounded-full">
+              <UserCircleIcon className="h-8" />
+            </div>
+          )}
+          <p>{`${playlist.ownerProfile.display_name}'s`}</p>
+        </div>
         <h1 className="text-2xl font-semibold ">
-          {submission.id} Live submission
+          {playlist.playlistDetail.name} Live submission
         </h1>
         {submission.endsAt && (
           <span className="text-sm text-textBody">

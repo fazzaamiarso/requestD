@@ -145,8 +145,8 @@ const EmptyState = () => {
       <Image
         src={EmptyIllustration}
         alt="Two people holding an empty archive"
-        height={100}
-        width={100}
+        height={200}
+        width={200}
       />
       <p className=" text-lg  text-materialPurple-100">
         There are no song requests yet!

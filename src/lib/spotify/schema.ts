@@ -58,3 +58,6 @@ export const newReleasesSchema = z.object({
     items: z.array(z.object({ id: z.string() })),
   }),
 });
+
+export type SpotifyUser = z.infer<typeof profileSchema>;
+export type SpotifyPlaylist = z.infer<typeof playlistSchema>;

@@ -72,6 +72,17 @@ const getMyProfile = async (refresh_token: string) => {
   return profile;
 };
 
+const getPublicUserProfile = async (userSpotifyId: string) => {
+  const { access_token } = await getPublicAccessToken();
+  const res = await fetch(`${BASE_ENDPOINT}/users/${userSpotifyId}`, {
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+    },
+  });
+  const profile = profileSchema.parse(await res.json());
+  return profile;
+};
+
 const createPlaylist = async (refresh_token: string, title: string) => {
   const { access_token } = await getAccessToken(refresh_token);
   const user = await getMyProfile(refresh_token);
@@ -86,11 +97,11 @@ const createPlaylist = async (refresh_token: string, title: string) => {
     }),
   });
   const createdPlaylist = playlistSchema.parse(await res.json());
-  return createdPlaylist;
+  return { createdPlaylist, userSpotifyId: user.id };
 };
 
-const getPlaylistDetail = async (refresh_token: string, playlistId: string) => {
-  const { access_token } = await getAccessToken(refresh_token);
+const getPlaylistDetail = async (playlistId: string) => {
+  const { access_token } = await getPublicAccessToken();
   const res = await fetch(`${BASE_ENDPOINT}/playlists/${playlistId}`, {
     method: "GET",
     headers: {
@@ -245,4 +256,5 @@ export {
   getTrackRecommendations,
   getNewReleases,
   getSeveralAlbums,
+  getPublicUserProfile,
 };
