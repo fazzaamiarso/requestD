@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Image from "next/image";
 import { NextRouter, useRouter } from "next/router";
-import { trpc } from "../../utils/trpc";
+import { trpc } from "@/utils/trpc";
 import {
   ArrowLeftIcon,
   CalendarIcon,
@@ -15,13 +15,13 @@ import {
   PlayIcon,
   StopIcon,
 } from "@heroicons/react/outline";
-import { dayjs } from "../../lib/dayjs";
-import NoDataIllustration from "../../assets/no-data.svg";
-import { SubmissionChips } from "../../components/status-chips";
-import { ReactNode, useEffect } from "react";
-import { copyToClipboard } from "../../utils/client-helper";
+import { dayjs } from "@/lib/dayjs";
+import NoDataIllustration from "@/assets/no-data.svg";
+import { SubmissionChips } from "@/components/status-chips";
+import { ReactNode } from "react";
+import { copyToClipboard } from "@/utils/client-helper";
 import toast, { Toaster } from "react-hot-toast";
-import GoBackButton from "../../components/go-back-button";
+import GoBackButton from "@/components/go-back-button";
 
 const OwnerSubmission = () => {
   const router = useRouter();

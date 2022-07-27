@@ -1,7 +1,7 @@
 import type { GetServerSidePropsContext, NextPage } from "next";
 import { getSession, signIn, signOut, useSession } from "next-auth/react";
 import Head from "next/head";
-import { createRedirect } from "../utils/server-helper";
+import { createRedirect } from "@/utils/server-helper";
 
 export const getServerSideProps = async ({
   req,

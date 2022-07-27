@@ -2,8 +2,8 @@ import { PlusIcon } from "@heroicons/react/solid";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import GoBackButton from "../../components/go-back-button";
-import { trpc } from "../../utils/trpc";
+import GoBackButton from "@/components/go-back-button";
+import { trpc } from "@/utils/trpc";
 
 const NewSubmission = () => {
   const router = useRouter();

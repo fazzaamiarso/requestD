@@ -1,17 +1,17 @@
-import { trpc } from "../../utils/trpc";
+import { trpc } from "@/utils/trpc";
 import Link from "next/link";
 import Image from "next/image";
 import { GetServerSidePropsContext } from "next";
 import { getSession, signOut } from "next-auth/react";
-import { createRedirect } from "../../utils/server-helper";
+import { createRedirect } from "@/utils/server-helper";
 import { ClipboardCopyIcon, LogoutIcon } from "@heroicons/react/solid";
-import { dayjs } from "../../lib/dayjs";
+import { dayjs } from "@/lib/dayjs";
 import { TrashIcon } from "@heroicons/react/outline";
-import { SubmissionChips } from "../../components/status-chips";
-import EmptyIllustration from "../../assets/sub-empty.svg";
+import { SubmissionChips } from "@/components/status-chips";
+import EmptyIllustration from "@/assets/sub-empty.svg";
 
-import { LoadingSpinner } from "../../components/lottie";
-import { copyToClipboard } from "../../utils/client-helper";
+import { LoadingSpinner } from "@/components/lottie";
+import { copyToClipboard } from "@/utils/client-helper";
 import Head from "next/head";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -153,4 +153,3 @@ const EmptyState = () => {
     </div>
   );
 };
-

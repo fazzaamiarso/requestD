@@ -1,18 +1,18 @@
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { inferMutationInput, trpc } from "../../utils/trpc";
+import { inferMutationInput, trpc } from "@/utils/trpc";
 import { prisma } from "../../server/db/client";
-import { createRedirect } from "../../utils/server-helper";
+import { createRedirect } from "@/utils/server-helper";
 import Head from "next/head";
 import { SearchIcon } from "@heroicons/react/solid";
 import Image from "next/image";
 import { InboxInIcon } from "@heroicons/react/outline";
-import musicIllustration from "../../assets/happy-music.svg";
-import { dayjs } from "../../lib/dayjs";
+import musicIllustration from "@/assets/happy-music.svg";
+import { dayjs } from "@/lib/dayjs";
 import { Submission } from "@prisma/client";
-import { SubmissionEnded } from "../../components/lottie";
-import DoneIllustration from "../../assets/done.svg";
+import { SubmissionEnded } from "@/components/lottie";
+import DoneIllustration from "@/assets/done.svg";
 import toast, { Toaster } from "react-hot-toast";
 
 export const getServerSideProps = async ({
