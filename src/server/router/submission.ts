@@ -131,8 +131,11 @@ const submissionRouter = createProtectedRouter()
       requestId: z.string(),
     }),
     async resolve({ ctx, input }) {
-      await ctx.prisma.requestedTrack.delete({
+      await ctx.prisma.requestedTrack.update({
         where: { id: input.requestId },
+        data: {
+          status: "REJECTED",
+        },
       });
       return null;
     },

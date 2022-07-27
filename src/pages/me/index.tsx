@@ -30,6 +30,13 @@ const copyToast = (toastId: string) =>
     position: "top-center",
   });
 
+const deleteToast = (toastId: string, playlistName: string) =>
+  toast(`Submission for ${playlistName} deleted`, {
+    id: toastId,
+    duration: 1500,
+    position: "top-center",
+  });
+
 const AdminDashboard = () => {
   const utils = trpc.useContext();
   const { data, isLoading } = trpc.useQuery(["submission.all"]);
@@ -92,7 +99,14 @@ const AdminDashboard = () => {
                   <div className="mt-8 flex w-full items-center gap-8 sm:ml-auto sm:mt-0 sm:w-max sm:gap-6">
                     <button
                       onClick={() =>
-                        deleteMutation.mutate({ submissionId: submission.id })
+                        deleteMutation.mutate(
+                          { submissionId: submission.id },
+                          {
+                            onSuccess: () => {
+                              deleteToast(submission.id, playlist.name);
+                            },
+                          }
+                        )
                       }
                     >
                       <TrashIcon className="h-6" />

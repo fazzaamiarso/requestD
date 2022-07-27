@@ -3,6 +3,7 @@ import Image from "next/image";
 import { NextRouter, useRouter } from "next/router";
 import { trpc } from "../../utils/trpc";
 import {
+  ArrowLeftIcon,
   CalendarIcon,
   CheckIcon,
   TicketIcon,
@@ -20,6 +21,7 @@ import { SubmissionChips } from "../../components/status-chips";
 import { ReactNode, useEffect } from "react";
 import { copyToClipboard } from "../../utils/client-helper";
 import toast, { Toaster } from "react-hot-toast";
+import GoBackButton from "../../components/go-back-button";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -47,10 +49,14 @@ const OwnerSubmissionContent = ({
   router: NextRouter;
 }) => {
   const utils = trpc.useContext();
-  const { data, isLoading } = trpc.useQuery([
-    "submission.detail",
-    { submissionId },
-  ]);
+  const { data, isLoading } = trpc.useQuery(
+    ["submission.detail", { submissionId }],
+    {
+      onSettled: (data) => {
+        if (!data) router.replace("/404");
+      },
+    }
+  );
 
   const { data: trackData, isLoading: isTrackLoading } = trpc.useQuery([
     "submission.tracks",
@@ -67,12 +73,6 @@ const OwnerSubmissionContent = ({
   const statusMutation = trpc.useMutation(["submission.set-status"], {
     onSuccess: () => utils.invalidateQueries(["submission.detail"]),
   });
-
-  useEffect(() => {
-    if (!isLoading && !data) {
-      window.location.replace("/404");
-    }
-  }, [data, isLoading]);
 
   const isPaused = data?.submission.status === "PAUSED";
   const isEnded = data?.submission.status === "ENDED";
@@ -108,7 +108,8 @@ const OwnerSubmissionContent = ({
         data && (
           <header className="mx-auto mt-6 flex w-11/12 max-w-4xl flex-col  items-start gap-4 sm:flex-row sm:items-center ">
             <div className="flex flex-col space-y-1">
-              <h1 className=" flex items-center gap-3 text-3xl font-bold">
+              <GoBackButton />
+              <h1 className=" flex items-center gap-3 pt-4 text-3xl font-bold">
                 {data.playlist.name}
                 <SubmissionChips status={data.submission.status} />
               </h1>
@@ -219,6 +220,8 @@ const OwnerSubmissionContent = ({
 };
 
 export default OwnerSubmission;
+
+
 
 const SubmissionMeta = ({
   children,

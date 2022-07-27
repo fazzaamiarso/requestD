@@ -1,9 +1,12 @@
 import { PlusIcon } from "@heroicons/react/solid";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import { useState } from "react";
+import GoBackButton from "../../components/go-back-button";
 import { trpc } from "../../utils/trpc";
 
 const NewSubmission = () => {
+  const router = useRouter();
   const [isDurationOn, setIsDurationOn] = useState(false);
   const [isRequestLimitOn, setIsRequestLimitOn] = useState(false);
   const mutation = trpc.useMutation("submission.create");
@@ -14,7 +17,8 @@ const NewSubmission = () => {
         <title>New Submission | RequestD</title>
       </Head>
       <header className="mx-auto mt-8 w-10/12 max-w-2xl">
-        <h1 className="text-3xl font-bold">New Submission</h1>
+        <GoBackButton />
+        <h1 className="pt-4 text-3xl font-bold">New Submission</h1>
         <p className="text-textBody">
           This will create a new playlist on Spotify
         </p>
@@ -34,7 +38,7 @@ const NewSubmission = () => {
               { title, duration, requestLimit },
               {
                 onSuccess(data) {
-                  window.location.replace(`/me/${data.submissionId}`);
+                  router.replace(`/me/${data.submissionId}`);
                 },
               }
             );
