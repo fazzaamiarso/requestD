@@ -1,19 +1,29 @@
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { inferMutationInput, trpc } from "../../utils/trpc";
+import { inferMutationInput, trpc } from "@/utils/trpc";
 import { prisma } from "../../server/db/client";
-import { createRedirect } from "../../utils/server-helper";
+import { createRedirect } from "@/utils/server-helper";
 import Head from "next/head";
-import { SearchIcon } from "@heroicons/react/solid";
+import {
+  CalendarIcon,
+  SearchIcon,
+  TicketIcon,
+  UserCircleIcon,
+} from "@heroicons/react/solid";
 import Image from "next/image";
 import { InboxInIcon } from "@heroicons/react/outline";
-import { useEffect } from "react";
-import musicIllustration from "../../assets/happy-music.svg";
-import { dayjs } from "../../lib/dayjs";
+import musicIllustration from "@/assets/happy-music.svg";
+import { dayjs } from "@/lib/dayjs";
 import { Submission } from "@prisma/client";
-import { SubmissionEnded } from "../../components/lottie";
-import DoneIllustration from "../../assets/done.svg";
+import { SubmissionEnded } from "@/components/lottie";
+import DoneIllustration from "@/assets/done.svg";
+import toast, { Toaster } from "react-hot-toast";
+import { getPlaylistDetail, getPublicUserProfile } from "@/lib/spotify";
+import { SpotifyPlaylist, SpotifyUser } from "@/lib/spotify/schema";
+import { SubmissionMeta } from "@/components/submission-meta";
+import { SearchBySpotify } from "@/components/atrributions/spotify";
+import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 
 export const getServerSideProps = async ({
   params,
@@ -24,11 +34,19 @@ export const getServerSideProps = async ({
   let submission = await prisma.submission.findFirst({
     where: { id },
   });
-
   if (!submission) return createRedirect("/404");
 
-  const isSubmissionOwner = session?.user?.id === submission?.userId;
+  const playlistDetail = await getPlaylistDetail(submission.spotifyPlaylistId);
+  if (!playlistDetail) {
+    await prisma.submission.delete({
+      where: { id: submission.id },
+    });
+    return createRedirect("/404");
+  }
 
+  const userProfile = await getPublicUserProfile(submission.spotifyUserId);
+
+  const isSubmissionOwner = session?.user?.id === submission?.userId;
   if (isSubmissionOwner) return createRedirect(`/me/${id}`);
 
   if (
@@ -46,7 +64,7 @@ export const getServerSideProps = async ({
   if (submission && submission.personRequestLimit) {
     const submissionToken = req.cookies["submission-token"];
     const requestCount = await prisma.requestedTrack.count({
-      where: { request_token: submissionToken },
+      where: { submissionId: submission.id, request_token: submissionToken },
     });
     requestsLeft = submission.personRequestLimit - requestCount;
   }
@@ -56,6 +74,7 @@ export const getServerSideProps = async ({
   return {
     props: {
       submission,
+      playlist: { ownerProfile: userProfile, playlistDetail },
       requestsLeft,
     },
   };
@@ -63,6 +82,7 @@ export const getServerSideProps = async ({
 
 const Submission = ({
   submission,
+  playlist,
   requestsLeft,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
   if (requestsLeft && requestsLeft <= 0)
@@ -88,65 +108,94 @@ const Submission = ({
     );
 
   return (
-    <SubmissionContent submission={submission} requestsLeft={requestsLeft} />
+    <SubmissionContent
+      submission={submission}
+      requestsLeft={requestsLeft}
+      playlist={playlist}
+    />
   );
 };
 
+const requestSuccessToast = () =>
+  toast("Song request sent!", {
+    duration: 1500,
+  });
+
 type RequestInput = inferMutationInput<"request.request">;
 
-let firstRender = true;
 const SubmissionContent = ({
   submission,
   requestsLeft,
+  playlist,
 }: {
   submission: Submission;
   requestsLeft: number | null;
+  playlist: { ownerProfile: SpotifyUser; playlistDetail: SpotifyPlaylist };
 }) => {
   const router = useRouter();
   const mutation = trpc.useMutation(["request.search"]);
   const requestMutation = trpc.useMutation(["request.request"], {
-    onSuccess: () => router.replace("."),
+    onSuccess: () => {
+      requestSuccessToast();
+      mutation.reset();
+      router.replace(`/submission/${submission.id}`);
+    },
   });
+  const noSearchData = !mutation.data;
 
   const handleRequest = (trackId: RequestInput["trackId"]) => {
+    if (requestMutation.isLoading) return;
     requestMutation.mutate({ trackId, submissionId: submission.id });
   };
-
-  useEffect(() => {
-    firstRender = false;
-  }, []);
 
   return (
     <>
       <Head>
-        <title>Live Submission | RequestD</title>
+        <title>{playlist.playlistDetail.name} | RequestD</title>
       </Head>
+      <Toaster />
       <header className="mx-auto my-8 w-10/12 max-w-xl">
+        <div className="mb-4 flex items-center gap-2 text-sm text-textBody">
+          {playlist.ownerProfile.images[0]?.url ? (
+            <Image
+              src={playlist.ownerProfile.images[0]?.url}
+              alt={playlist.ownerProfile.display_name}
+              height={32}
+              width={32}
+              className="rounded-full"
+            />
+          ) : (
+            <div className="aspect-square  rounded-full">
+              <UserCircleIcon className="h-8" />
+            </div>
+          )}
+          <p>{`${playlist.ownerProfile.display_name}'s`}</p>
+        </div>
         <h1 className="text-2xl font-semibold ">
-          {submission.id} Live submission
+          {playlist.playlistDetail.name} Live submission
         </h1>
-        {submission.endsAt && (
-          <span className="text-sm text-textBody">
-            submission will ends {dayjs(submission.endsAt).fromNow(false)}
-          </span>
-        )}
-        {requestsLeft && submission.personRequestLimit && (
-          <span className="text-sm text-textBody">
-            {requestsLeft}/{submission.personRequestLimit} requests left
-          </span>
-        )}
+        <SubmissionMeta Icon={CalendarIcon}>
+          {submission.endsAt
+            ? `Ends ${dayjs(submission.endsAt).fromNow()}`
+            : "No duration set"}
+        </SubmissionMeta>
+        <SubmissionMeta Icon={TicketIcon}>
+          {submission.personRequestLimit
+            ? `${requestsLeft} requests left`
+            : "No request limit"}
+        </SubmissionMeta>
         <div className="mt-4 h-px w-full bg-cardBg" />
       </header>
-      <main className="mx-auto mt-8 w-10/12  max-w-xl ">
+      <main className="mx-auto my-12 w-10/12  max-w-xl ">
         <div className="flex w-full flex-col space-y-6">
-          <div className="text-center ">
+          <div className="mb-8 text-center ">
             <Image
               src={musicIllustration}
               alt="an illustration of a bird listening to music with headphone on"
               width={150}
               height={150}
             />
-            <h2 className="mt-8 text-xl font-semibold">Request a song</h2>
+            <h2 className="mt-2 text-xl font-semibold">Request a song</h2>
             <p className="text-textBody">
               Search for a song and click on the request button
             </p>
@@ -154,13 +203,15 @@ const SubmissionContent = ({
           <form
             className=" w-full "
             onSubmit={(e) => {
+              if (mutation.isLoading) return;
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               const query = formData.get("search");
               mutation.mutate({ searchQuery: query as string });
             }}
           >
-            <div className="flex w-full items-center gap-4 ">
+            <SearchBySpotify />
+            <div className="mt-2 flex w-full items-center gap-4">
               <label htmlFor="search" className="sr-only text-lg font-semibold">
                 Search Tracks
               </label>
@@ -181,7 +232,7 @@ const SubmissionContent = ({
             </div>
           </form>
         </div>
-        {firstRender && <NewReleases onRequest={handleRequest} />}
+        {noSearchData && <NewReleases onRequest={handleRequest} />}
         {mutation.data && (
           <ul className="my-6 space-y-4">
             {mutation.data.map((item) => {
@@ -199,6 +250,9 @@ const SubmissionContent = ({
           </ul>
         )}
       </main>
+      <footer className="mx-auto mt-20 mb-8 flex w-10/12 max-w-xl flex-col items-center text-center text-textBody">
+        <FooterAttributions />
+      </footer>
     </>
   );
 };

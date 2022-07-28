@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const imageSchema = z.object({
   url: z.string(),
-  height: z.number(),
-  width: z.number(),
+  height: z.number().nullish(),
+  width: z.number().nullish(),
 });
 
 export const playlistSchema = z.object({
@@ -58,3 +58,6 @@ export const newReleasesSchema = z.object({
     items: z.array(z.object({ id: z.string() })),
   }),
 });
+
+export type SpotifyUser = z.infer<typeof profileSchema>;
+export type SpotifyPlaylist = z.infer<typeof playlistSchema>;

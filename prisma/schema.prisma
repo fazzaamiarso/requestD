@@ -29,6 +29,7 @@ model Submission {
     createdAt          DateTime         @default(now())
     endsAt             DateTime?
     userId             String
+    spotifyUserId       String
     spotifyPlaylistId  String
     maxTrackLimit      Int?
     personRequestLimit Int?

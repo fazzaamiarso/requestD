@@ -3,11 +3,12 @@ import { z } from "zod";
 import {
   addTracksToPlaylist,
   createPlaylist,
+  getMyProfile,
   getPlaylistDetail,
   getTrack,
-} from "../../lib/spotify";
+} from "@/lib/spotify";
 import { createProtectedRouter } from "./context";
-import { dayjs } from "../../lib/dayjs";
+import { dayjs } from "@/lib/dayjs";
 
 const submissionRouter = createProtectedRouter()
   .query("all", {
@@ -23,10 +24,13 @@ const submissionRouter = createProtectedRouter()
       });
       const playlists = await Promise.all(
         submission.map(async (s) => {
-          const playlistDetail = await getPlaylistDetail(
-            ctx.session.access_token,
-            s.spotifyPlaylistId
-          );
+          const playlistDetail = await getPlaylistDetail(s.spotifyPlaylistId);
+          if (!playlistDetail) {
+            await ctx.prisma.submission.delete({
+              where: { id: s.id },
+            });
+            return {};
+          }
           return {
             submission: { id: s.id, createdAt: s.createdAt, status: s.status },
             playlist: playlistDetail,
@@ -38,6 +42,12 @@ const submissionRouter = createProtectedRouter()
       };
     },
   })
+  .query("my-profile", {
+    async resolve({ ctx }) {
+      const myProfile = await getMyProfile(ctx.session.access_token);
+      return myProfile;
+    },
+  })
   .query("detail", {
     input: z.object({ submissionId: z.string() }),
     async resolve({ ctx, input }) {
@@ -45,10 +55,13 @@ const submissionRouter = createProtectedRouter()
         where: { id: input.submissionId },
       });
       if (!submission) throw Error("No submission found!");
-      const playlist = await getPlaylistDetail(
-        ctx.session.access_token,
-        submission.spotifyPlaylistId
-      );
+      const playlist = await getPlaylistDetail(submission.spotifyPlaylistId);
+      if (!playlist) {
+        await ctx.prisma.submission.delete({
+          where: { id: submission.id },
+        });
+        throw Error("No playlist found! Potentially deleted by the owner");
+      }
       return { submission, playlist };
     },
   })
@@ -75,7 +88,7 @@ const submissionRouter = createProtectedRouter()
       duration: z.string().nullish(),
     }),
     async resolve({ ctx, input }) {
-      const createdPlaylist = await createPlaylist(
+      const { createdPlaylist, userSpotifyId } = await createPlaylist(
         ctx.session.access_token,
         input.title
       );
@@ -89,6 +102,7 @@ const submissionRouter = createProtectedRouter()
 
       const submission = await ctx.prisma.submission.create({
         data: {
+          spotifyUserId: userSpotifyId,
           createdAt,
           endsAt,
           personRequestLimit: requestLimit,
@@ -131,8 +145,11 @@ const submissionRouter = createProtectedRouter()
       requestId: z.string(),
     }),
     async resolve({ ctx, input }) {
-      await ctx.prisma.requestedTrack.delete({
+      await ctx.prisma.requestedTrack.update({
         where: { id: input.requestId },
+        data: {
+          status: "REJECTED",
+        },
       });
       return null;
     },

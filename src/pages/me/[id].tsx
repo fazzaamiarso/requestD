@@ -1,8 +1,9 @@
 import Head from "next/head";
 import Image from "next/image";
 import { NextRouter, useRouter } from "next/router";
-import { trpc } from "../../utils/trpc";
+import { trpc } from "@/utils/trpc";
 import {
+  ArrowLeftIcon,
   CalendarIcon,
   CheckIcon,
   TicketIcon,
@@ -14,12 +15,15 @@ import {
   PlayIcon,
   StopIcon,
 } from "@heroicons/react/outline";
-import { dayjs } from "../../lib/dayjs";
-import NoDataIllustration from "../../assets/no-data.svg";
-import { SubmissionChips } from "../../components/status-chips";
-import { ReactNode, useEffect } from "react";
-import { copyToClipboard } from "../../utils/client-helper";
+import { dayjs } from "@/lib/dayjs";
+import NoDataIllustration from "@/assets/no-data.svg";
+import { SubmissionChips } from "@/components/status-chips";
+import { ReactNode } from "react";
+import { copyToClipboard } from "@/utils/client-helper";
 import toast, { Toaster } from "react-hot-toast";
+import GoBackButton from "@/components/go-back-button";
+import { SubmissionMeta } from "@/components/submission-meta";
+import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -39,6 +43,14 @@ const copyToast = (toastId: string) =>
     position: "top-center",
   });
 
+const confirmationToast = (toastId: string, message: string) => {
+  toast(message, {
+    id: toastId,
+    duration: 1500,
+    position: "top-center",
+  });
+};
+
 const OwnerSubmissionContent = ({
   submissionId,
   router,
@@ -47,10 +59,14 @@ const OwnerSubmissionContent = ({
   router: NextRouter;
 }) => {
   const utils = trpc.useContext();
-  const { data, isLoading } = trpc.useQuery([
-    "submission.detail",
-    { submissionId },
-  ]);
+  const { data, isLoading } = trpc.useQuery(
+    ["submission.detail", { submissionId }],
+    {
+      onSettled: (data) => {
+        if (!data) router.replace("/404");
+      },
+    }
+  );
 
   const { data: trackData, isLoading: isTrackLoading } = trpc.useQuery([
     "submission.tracks",
@@ -67,12 +83,6 @@ const OwnerSubmissionContent = ({
     onSuccess: () => utils.invalidateQueries(["submission.detail"]),
   });
 
-  useEffect(() => {
-    if (!isLoading && !data) {
-      window.location.replace("/404");
-    }
-  }, [data, isLoading]);
-
   const isPaused = data?.submission.status === "PAUSED";
   const isEnded = data?.submission.status === "ENDED";
   const handleResume = () =>
@@ -86,13 +96,22 @@ const OwnerSubmissionContent = ({
     statusMutation.mutate({ status: "PAUSED", submissionId });
 
   const handleReject = (requestId: string) =>
-    deleteRequest.mutate({ requestId });
+    deleteRequest.mutate(
+      { requestId },
+      { onSuccess: () => confirmationToast(requestId, "Request rejected.") }
+    );
   const handleAccept = (requestData: { requestId: string; uri: string }) => {
     if (!data) return;
-    mutation.mutate({
-      playlistId: data.playlist.id,
-      tracksData: [requestData],
-    });
+    mutation.mutate(
+      {
+        playlistId: data.playlist.id,
+        tracksData: [requestData],
+      },
+      {
+        onSuccess: () =>
+          confirmationToast(requestData.requestId, "Request accepted."),
+      }
+    );
   };
 
   return (
@@ -107,7 +126,8 @@ const OwnerSubmissionContent = ({
         data && (
           <header className="mx-auto mt-6 flex w-11/12 max-w-4xl flex-col  items-start gap-4 sm:flex-row sm:items-center ">
             <div className="flex flex-col space-y-1">
-              <h1 className=" flex items-center gap-3 text-3xl font-bold">
+              <GoBackButton />
+              <h1 className=" flex items-center gap-3 pt-4 text-3xl font-bold">
                 {data.playlist.name}
                 <SubmissionChips status={data.submission.status} />
               </h1>
@@ -156,7 +176,7 @@ const OwnerSubmissionContent = ({
           </header>
         )
       )}
-      <main className="mx-auto mt-12 w-11/12 max-w-4xl">
+      <main className="mx-auto my-12 min-h-screen w-11/12 max-w-4xl">
         <h2 className="mb-4 text-xl font-bold">Pending Requests</h2>
         <div className="h-px w-full bg-cardBg" />
         {!isTrackLoading && !trackData?.tracks.length && <EmptyState />}
@@ -213,26 +233,14 @@ const OwnerSubmissionContent = ({
             })}
         </ul>
       </main>
+      <footer className="mx-auto mt-20 mb-8 flex w-11/12 max-w-4xl flex-col items-center text-center text-textBody">
+        <FooterAttributions />
+      </footer>
     </>
   );
 };
 
 export default OwnerSubmission;
-
-const SubmissionMeta = ({
-  children,
-  Icon,
-}: {
-  children: ReactNode;
-  Icon: (props: React.ComponentProps<"svg">) => JSX.Element;
-}) => {
-  return (
-    <span className="flex items-center gap-1 text-sm text-textBody">
-      <Icon className="h-4" />
-      {children}
-    </span>
-  );
-};
 
 const submissionButtonIcons = {
   pause: PauseIcon,

@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { Animation404 } from "../components/lottie";
+import { Animation404 } from "@/components/lottie";
 
 const Custom404 = () => {
   return (
