@@ -23,6 +23,11 @@ const MyApp: AppType = ({
             { url: "https://request-d.vercel.app/logo.png", type: "image/png" },
           ],
         }}
+        twitter={{
+          handle: "@faz_razq",
+          cardType: "summary",
+        }}
+        titleTemplate={"%s | RequestD "}
         defaultTitle="RequestD"
         description="An app to create music request submission. Integrated with Spotify"
       />

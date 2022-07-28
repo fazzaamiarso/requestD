@@ -1,10 +1,10 @@
 import { PlusIcon } from "@heroicons/react/solid";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import GoBackButton from "@/components/go-back-button";
 import { trpc } from "@/utils/trpc";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
+import { NextSeo } from "next-seo";
 
 const NewSubmission = () => {
   const router = useRouter();
@@ -14,9 +14,7 @@ const NewSubmission = () => {
 
   return (
     <>
-      <Head>
-        <title>New Submission | RequestD</title>
-      </Head>
+      <NextSeo title="New Submission" />
       <header className="mx-auto mt-8 w-10/12 max-w-2xl">
         <GoBackButton />
         <h1 className="pt-4 text-3xl font-bold">New Submission</h1>

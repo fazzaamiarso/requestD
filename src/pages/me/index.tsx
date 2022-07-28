@@ -16,12 +16,11 @@ import EmptyIllustration from "@/assets/sub-empty.svg";
 
 import { LoadingSpinner } from "@/components/lottie";
 import { copyToClipboard } from "@/utils/client-helper";
-import Head from "next/head";
 import toast, { Toaster } from "react-hot-toast";
 import { DialogBase } from "@/components/confirmation-dialog";
 import { useState } from "react";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
-import Logo from "@/assets/logo.png";
+import { NextSeo } from "next-seo";
 
 export const getServerSideProps = async ({
   req,
@@ -72,9 +71,7 @@ const AdminDashboard = () => {
 
   return (
     <>
-      <Head>
-        <title>Dashboard | RequestD</title>
-      </Head>
+      <NextSeo title="Dashboard" />
       <Toaster />
       <header className="mb-20 bg-[#262627] py-6">
         <div className=" mx-auto flex w-10/12 items-center ">
