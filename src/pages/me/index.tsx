@@ -21,6 +21,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { DialogBase } from "@/components/confirmation-dialog";
 import { useState } from "react";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
+import Logo from "@/assets/logo.png";
 
 export const getServerSideProps = async ({
   req,
@@ -75,28 +76,32 @@ const AdminDashboard = () => {
         <title>Dashboard | RequestD</title>
       </Head>
       <Toaster />
-      <header className="scrollbar  mb-20 bg-[#262627] py-6">
-        <div className=" mx-auto flex w-10/12 ">
-          <div className="text-3xl font-bold">LOGO</div>
-          <div className="ml-auto flex items-center gap-10">
+      <header className="mb-20 bg-[#262627] py-6">
+        <div className=" mx-auto flex w-10/12 items-center ">
+          <div className="flex items-center gap-4">
             {profile?.images[0]?.url ? (
-              <Image
-                src={profile.images[0]?.url}
-                alt={profile.display_name}
-                height={44}
-                width={44}
-                className="rounded-full"
-              />
+              <>
+                <Image
+                  src={profile.images[0]?.url}
+                  alt={profile.display_name}
+                  height={44}
+                  width={44}
+                  className="rounded-full"
+                />
+                <p className="">{profile.display_name}</p>
+              </>
             ) : (
               <div className="aspect-square  rounded-full">
                 <UserCircleIcon className="h-8" />
               </div>
             )}
+          </div>
+          <div className="ml-auto flex items-center gap-4 sm:gap-10">
             <button
               onClick={() => signOut()}
               className=" flex items-center gap-2 rounded-sm p-2 text-materialPurple-200 ring-1 ring-materialPurple-200 transition-colors hover:bg-materialPurple-50"
             >
-              <span className="text-sm">Logout</span>
+              <span className="hidden text-sm sm:inline">Logout</span>
               <LogoutIcon className="h-5" />
             </button>
           </div>
@@ -106,7 +111,7 @@ const AdminDashboard = () => {
         <div className="flex">
           <h1 className="text-2xl font-bold">Submissions</h1>
           <Link href="/me/new">
-            <a className="ml-auto inline-block rounded-sm bg-materialPurple-400 p-2 px-4 text-textHeading transition-opacity hover:opacity-80">
+            <a className="ml-auto inline-block rounded-sm bg-materialPurple-400 p-2 px-4 text-sm text-textHeading transition-opacity hover:opacity-80 sm:text-base">
               New submission
             </a>
           </Link>
