@@ -4,7 +4,6 @@ import { useRouter } from "next/router";
 import { inferMutationInput, trpc } from "@/utils/trpc";
 import { prisma } from "../../server/db/client";
 import { createRedirect } from "@/utils/server-helper";
-import Head from "next/head";
 import {
   CalendarIcon,
   SearchIcon,
@@ -24,6 +23,7 @@ import { SpotifyPlaylist, SpotifyUser } from "@/lib/spotify/schema";
 import { SubmissionMeta } from "@/components/submission-meta";
 import { SearchBySpotify } from "@/components/atrributions/spotify";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
+import { NextSeo } from "next-seo";
 
 export const getServerSideProps = async ({
   params,
@@ -150,9 +150,10 @@ const SubmissionContent = ({
 
   return (
     <>
-      <Head>
-        <title>{playlist.playlistDetail.name} | RequestD</title>
-      </Head>
+      <NextSeo
+        title={playlist.playlistDetail.name}
+        description={`Give your song recommendation to ${playlist.ownerProfile.display_name}`}
+      />
       <Toaster />
       <header className="mx-auto my-8 w-10/12 max-w-xl">
         <div className="mb-4 flex items-center gap-2 text-sm text-textBody">

@@ -1,9 +1,7 @@
-import Head from "next/head";
 import Image from "next/image";
 import { NextRouter, useRouter } from "next/router";
 import { trpc } from "@/utils/trpc";
 import {
-  ArrowLeftIcon,
   CalendarIcon,
   CheckIcon,
   TicketIcon,
@@ -24,6 +22,7 @@ import toast, { Toaster } from "react-hot-toast";
 import GoBackButton from "@/components/go-back-button";
 import { SubmissionMeta } from "@/components/submission-meta";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
+import { NextSeo } from "next-seo";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -116,9 +115,7 @@ const OwnerSubmissionContent = ({
 
   return (
     <>
-      <Head>
-        <title>RequestD | {data?.playlist.name}</title>
-      </Head>
+      <NextSeo title={data?.playlist.name} />
       <Toaster />
       {isLoading ? (
         <HeaderSkeleton />

@@ -1,8 +1,8 @@
 import type { GetServerSidePropsContext, NextPage } from "next";
 import { getSession, signOut, useSession } from "next-auth/react";
-import Head from "next/head";
 import { createRedirect } from "@/utils/server-helper";
 import { SpotifyLoginButton } from "@/components/atrributions/spotify";
+import { NextSeo } from "next-seo";
 
 export const getServerSideProps = async ({
   req,
@@ -19,9 +19,7 @@ const Home: NextPage = () => {
   const { data: session } = useSession();
   return (
     <>
-      <Head>
-        <title>RequestD | Home</title>
-      </Head>
+      <NextSeo title="Home" />
       <main className="container mx-auto flex h-screen flex-col items-center justify-center p-4">
         <h1>Landing Page</h1>
         <div>
