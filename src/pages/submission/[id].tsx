@@ -24,6 +24,7 @@ import { SubmissionMeta } from "@/components/submission-meta";
 import { SearchBySpotify } from "@/components/atrributions/spotify";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 import { NextSeo } from "next-seo";
+import { Spinner } from "@/components/spinner";
 
 export const getServerSideProps = async ({
   params,
@@ -141,10 +142,13 @@ const SubmissionContent = ({
       router.replace(`/submission/${submission.id}`);
     },
   });
+
   const noSearchData = !mutation.data;
+  const isSearching = mutation.isLoading;
+  const isRequesting = requestMutation.isLoading;
 
   const handleRequest = (trackId: RequestInput["trackId"]) => {
-    if (requestMutation.isLoading) return;
+    if (isRequesting) return;
     requestMutation.mutate({ trackId, submissionId: submission.id });
   };
 
@@ -152,7 +156,7 @@ const SubmissionContent = ({
     <>
       <NextSeo
         title={playlist.playlistDetail.name}
-        description={`Give your song recommendation to ${playlist.ownerProfile.display_name}`}
+        description={`🎼 Give your song recommendation to ${playlist.ownerProfile.display_name}`}
       />
       <Toaster />
       <header className="mx-auto my-8 w-10/12 max-w-xl">
@@ -228,7 +232,7 @@ const SubmissionContent = ({
                 className="flex items-center gap-1 rounded-md bg-materialPurple-200 p-2 font-semibold text-darkBg"
               >
                 <SearchIcon className="h-5" />
-                <span>Search</span>
+                <span>{isSearching ? "Searching.." : "Search"}</span>
               </button>
             </div>
           </form>
@@ -273,6 +277,12 @@ const RequestCard = ({
   artistName,
   onRequest,
 }: RequestCardProps) => {
+  const utils = trpc.useContext();
+  const isRequesting = utils.queryClient.isMutating({
+    predicate: (mutation) => {
+      return mutation.state.variables.trackId === trackId;
+    },
+  });
   return (
     <li className="flex items-center gap-2 rounded-md bg-cardBg p-4 ">
       <Image src={coverImage} alt={name} height={50} width={50} />
@@ -285,8 +295,10 @@ const RequestCard = ({
         onClick={() => onRequest(trackId)}
         className="ml-auto flex items-center gap-2 rounded-md bg-inputBg p-2 text-textBody transition-all  hover:text-textHeading hover:opacity-90"
       >
-        <InboxInIcon className="h-7 sm:h-6" />{" "}
-        <span className="hidden text-sm sm:inline">Request</span>
+        {isRequesting ? <Spinner /> : <InboxInIcon className="h-7 sm:h-6" />}
+        <span className="hidden text-sm sm:inline">
+          {isRequesting ? "Sending..." : "Request"}
+        </span>
       </button>
     </li>
   );
