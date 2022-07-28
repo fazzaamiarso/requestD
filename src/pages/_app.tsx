@@ -20,7 +20,13 @@ const MyApp: AppType = ({
           url: "https://request-d.vercel.app/",
           title: "RequestD",
           images: [
-            { url: "https://request-d.vercel.app/logo.png", type: "image/png" },
+            {
+              url: "https://request-d.vercel.app/logo-on-black.png",
+              alt: "requestD app logo",
+              type: "image/png",
+              height: 630,
+              width: 1200,
+            },
           ],
         }}
         twitter={{
