@@ -23,6 +23,7 @@ import GoBackButton from "@/components/go-back-button";
 import { SubmissionMeta } from "@/components/submission-meta";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 import { NextSeo } from "next-seo";
+import { Spinner } from "@/components/spinner";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -72,16 +73,9 @@ const OwnerSubmissionContent = ({
     { submissionId },
   ]);
 
-  const mutation = trpc.useMutation(["submission.add-to-playlist"], {
-    onSuccess: () => utils.invalidateQueries(["submission.tracks"]),
-  });
-  const deleteRequest = trpc.useMutation(["submission.reject"], {
-    onSuccess: () => utils.invalidateQueries(["submission.tracks"]),
-  });
   const statusMutation = trpc.useMutation(["submission.set-status"], {
     onSuccess: () => utils.invalidateQueries(["submission.detail"]),
   });
-
   const isPaused = data?.submission.status === "PAUSED";
   const isEnded = data?.submission.status === "ENDED";
   const handleResume = () =>
@@ -93,25 +87,6 @@ const OwnerSubmissionContent = ({
     );
   const handlePause = () =>
     statusMutation.mutate({ status: "PAUSED", submissionId });
-
-  const handleReject = (requestId: string) =>
-    deleteRequest.mutate(
-      { requestId },
-      { onSuccess: () => confirmationToast(requestId, "Request rejected.") }
-    );
-  const handleAccept = (requestData: { requestId: string; uri: string }) => {
-    if (!data) return;
-    mutation.mutate(
-      {
-        playlistId: data.playlist.id,
-        tracksData: [requestData],
-      },
-      {
-        onSuccess: () =>
-          confirmationToast(requestData.requestId, "Request accepted."),
-      }
-    );
-  };
 
   return (
     <>
@@ -182,50 +157,15 @@ const OwnerSubmissionContent = ({
           {trackData &&
             trackData.tracks.map((track) => {
               return (
-                <li
-                  key={track.id}
-                  className="flex items-center rounded-md bg-cardBg p-4 "
-                >
-                  {track.album.images[0] && (
-                    <Image
-                      src={track.album.images[0].url}
-                      alt={track.name}
-                      height={50}
-                      width={50}
-                    />
-                  )}
-                  <div className="ml-6">
-                    <h3 className="text-lg font-semibold">{track.name}</h3>
-                    <h4 className="text-sm text-textBody">
-                      {track.artists[0]?.name}
-                    </h4>
-                  </div>
-                  <div className="ml-auto flex items-center gap-4">
-                    <button
-                      onClick={() =>
-                        handleAccept({
-                          requestId: track.requestId,
-                          uri: track.uri,
-                        })
-                      }
-                      className="flex items-center gap-1 rounded-sm bg-inputBg p-2 transition-opacity hover:opacity-80"
-                    >
-                      <CheckIcon className="h-6 text-green-400" />
-                      <span className="hidden text-textBody sm:inline">
-                        Accept
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => handleReject(track.requestId)}
-                      className="flex items-center gap-1 rounded-sm bg-inputBg p-2 transition-opacity hover:opacity-80"
-                    >
-                      <XIcon className="h-6 text-red-400" />
-                      <span className="hidden text-textBody sm:inline">
-                        Reject
-                      </span>
-                    </button>
-                  </div>
-                </li>
+                <PendingRequestCard
+                  key={track.requestId}
+                  trackImage={track.album.images[0]?.url}
+                  trackName={track.name}
+                  artist={track.artists[0]?.name ?? ""}
+                  requestId={track.requestId}
+                  uri={track.uri}
+                  playlistId={data?.playlist.id}
+                />
               );
             })}
         </ul>
@@ -238,6 +178,83 @@ const OwnerSubmissionContent = ({
 };
 
 export default OwnerSubmission;
+
+type PendingRequestCardProps = {
+  trackImage: string | undefined;
+  trackName: string;
+  artist: string;
+  requestId: string;
+  uri: string;
+  playlistId: string | undefined;
+};
+const PendingRequestCard = ({
+  trackImage,
+  trackName,
+  artist,
+  requestId,
+  uri,
+  playlistId,
+}: PendingRequestCardProps) => {
+  const utils = trpc.useContext();
+  const acceptRequest = trpc.useMutation(["submission.add-to-playlist"], {
+    onSuccess: () => {
+      utils.invalidateQueries(["submission.tracks"]);
+      confirmationToast(requestId, "Request accepted.");
+    },
+  });
+  const deleteRequest = trpc.useMutation(["submission.reject"], {
+    onSuccess: () => {
+      utils.invalidateQueries(["submission.tracks"]);
+      confirmationToast(requestId, "Request rejected.");
+    },
+  });
+
+  const isAccepting = acceptRequest.isLoading;
+  const isRejecting = deleteRequest.isLoading;
+  const isBusy = isAccepting || isRejecting;
+
+  return (
+    <li className="flex items-center rounded-md bg-cardBg p-4 ">
+      {trackImage && (
+        <Image src={trackImage} alt={trackName} height={50} width={50} />
+      )}
+      <div className="ml-6">
+        <h3 className="text-lg font-semibold">{trackName}</h3>
+        <h4 className="text-sm text-textBody">{artist}</h4>
+      </div>
+      <div className="ml-auto flex items-center gap-4">
+        <button
+          onClick={() => {
+            if (!playlistId || isBusy) return;
+            acceptRequest.mutate({
+              playlistId,
+              tracksData: [{ requestId, uri }],
+            });
+          }}
+          className="flex items-center gap-1 rounded-sm bg-inputBg p-2 transition-opacity hover:opacity-80"
+        >
+          {isAccepting ? (
+            <Spinner />
+          ) : (
+            <CheckIcon className="h-6 text-green-400" />
+          )}
+          <span className="hidden text-textBody sm:inline">
+            {isAccepting ? "Accepting.." : "Accept"}
+          </span>
+        </button>
+        <button
+          onClick={() => !isBusy && deleteRequest.mutate({ requestId })}
+          className="flex items-center gap-1 rounded-sm bg-inputBg p-2 transition-opacity hover:opacity-80"
+        >
+          {isRejecting ? <Spinner /> : <XIcon className="h-6 text-red-400" />}
+          <span className="hidden text-textBody sm:inline">
+            {isRejecting ? "Rejecting.." : "Reject"}
+          </span>
+        </button>
+      </div>
+    </li>
+  );
+};
 
 const submissionButtonIcons = {
   pause: PauseIcon,

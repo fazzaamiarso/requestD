@@ -77,21 +77,19 @@ const AdminDashboard = () => {
         <div className=" mx-auto flex w-10/12 items-center ">
           <div className="flex items-center gap-4">
             {profile?.images[0]?.url ? (
-              <>
-                <Image
-                  src={profile.images[0]?.url}
-                  alt={profile.display_name}
-                  height={44}
-                  width={44}
-                  className="rounded-full"
-                />
-                <p className="">{profile.display_name}</p>
-              </>
+              <Image
+                src={profile.images[0]?.url}
+                alt={profile.display_name}
+                height={44}
+                width={44}
+                className="rounded-full"
+              />
             ) : (
               <div className="aspect-square  rounded-full">
                 <UserCircleIcon className="h-8" />
               </div>
             )}
+            <p className="">{profile?.display_name}</p>
           </div>
           <div className="ml-auto flex items-center gap-4 sm:gap-10">
             <button

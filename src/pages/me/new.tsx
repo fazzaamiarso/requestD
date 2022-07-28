@@ -5,12 +5,14 @@ import GoBackButton from "@/components/go-back-button";
 import { trpc } from "@/utils/trpc";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 import { NextSeo } from "next-seo";
+import { Spinner } from "@/components/spinner";
 
 const NewSubmission = () => {
   const router = useRouter();
   const [isDurationOn, setIsDurationOn] = useState(false);
   const [isRequestLimitOn, setIsRequestLimitOn] = useState(false);
   const mutation = trpc.useMutation("submission.create");
+  const isCreating = mutation.isLoading;
 
   return (
     <>
@@ -27,7 +29,7 @@ const NewSubmission = () => {
           className="w-full  space-y-6 rounded-md bg-cardBg p-6"
           onSubmit={(e) => {
             e.preventDefault();
-            if (mutation.isLoading) return;
+            if (isCreating) return;
             const formData = new FormData(e.currentTarget);
             const title = formData.get("title") as string;
             const duration = formData.get("duration") as string;
@@ -107,8 +109,8 @@ const NewSubmission = () => {
             type="submit"
             className="flex items-center gap-1 rounded-sm bg-materialPurple-200 p-3 font-semibold text-darkBg transition-all hover:opacity-80"
           >
-            <PlusIcon className="h-5 " />
-            Create
+            {isCreating ? <Spinner /> : <PlusIcon className="h-5 " />}
+            {isCreating ? "Creating..." : "Create"}
           </button>
         </form>
       </main>
