@@ -1,13 +1,11 @@
 import type { GetServerSidePropsContext, NextPage } from "next";
-import { getSession, signOut, useSession } from "next-auth/react";
-import { createRedirect } from "@/utils/server-helper";
+import { signOut, useSession } from "next-auth/react";
+import { createRedirect, getUserSession } from "@/utils/server-helper";
 import { SpotifyLoginButton } from "@/components/atrributions/spotify";
 import { NextSeo } from "next-seo";
 
-export const getServerSideProps = async ({
-  req,
-}: GetServerSidePropsContext) => {
-  const session = await getSession({ req });
+export const getServerSideProps = async ({ req, res }: GetServerSidePropsContext) => {
+  const session = await getUserSession(req, res);
 
   if (session?.user) {
     return createRedirect("/me");
