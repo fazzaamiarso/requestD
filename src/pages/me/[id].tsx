@@ -96,7 +96,7 @@ const OwnerSubmissionContent = ({
         <HeaderSkeleton />
       ) : (
         data && (
-          <header className="mx-auto mt-6 flex w-11/12 max-w-4xl flex-col  items-start gap-4 sm:flex-row sm:items-center ">
+          <header className="mx-auto mt-6 flex w-11/12 max-w-4xl flex-col  items-start gap-4 md:flex-row md:items-center ">
             <div className="flex flex-col space-y-1">
               <GoBackButton />
               <h1 className=" flex items-center gap-3 pt-4 text-3xl font-bold">
@@ -139,10 +139,10 @@ const OwnerSubmissionContent = ({
                   );
                   copyToast(data.submission.id);
                 }}
-                className="flex items-center gap-1 rounded-sm p-2 text-materialPurple-200 ring-1 ring-materialPurple-200 transition-colors hover:bg-materialPurple-100"
+                className="flex items-center gap-1 rounded-sm p-2 text-materialPurple-200 ring-1 ring-materialPurple-200 transition-all hover:bg-materialPurple-200 hover:text-darkBg"
               >
                 <ClipboardCopyIcon className="h-6 sm:h-5 " />
-                <span className="hidden sm:inline">Copy link</span>
+                <span className=" text-sm ">Copy submission link</span>
               </button>
             </div>
           </header>
