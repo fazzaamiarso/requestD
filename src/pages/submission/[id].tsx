@@ -1,9 +1,8 @@
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
-import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { inferMutationInput, trpc } from "@/utils/trpc";
 import { prisma } from "../../server/db/client";
-import { createRedirect } from "@/utils/server-helper";
+import { createRedirect, getUserSession } from "@/utils/server-helper";
 import {
   CalendarIcon,
   SearchIcon,
@@ -29,9 +28,10 @@ import { Spinner } from "@/components/spinner";
 export const getServerSideProps = async ({
   params,
   req,
+  res,
 }: GetServerSidePropsContext) => {
   const id = params!.id as string;
-  const session = await getSession({ req });
+  const session = await getUserSession(req, res);
   let submission = await prisma.submission.findFirst({
     where: { id },
   });

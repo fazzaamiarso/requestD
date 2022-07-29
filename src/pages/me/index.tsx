@@ -2,8 +2,8 @@ import { inferQueryOutput, trpc } from "@/utils/trpc";
 import Link from "next/link";
 import Image from "next/image";
 import { GetServerSidePropsContext } from "next";
-import { getSession, signOut } from "next-auth/react";
-import { createRedirect } from "@/utils/server-helper";
+import { signOut } from "next-auth/react";
+import { createRedirect, getUserSession } from "@/utils/server-helper";
 import {
   ClipboardCopyIcon,
   LogoutIcon,
@@ -22,10 +22,8 @@ import { useState } from "react";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 import { NextSeo } from "next-seo";
 
-export const getServerSideProps = async ({
-  req,
-}: GetServerSidePropsContext) => {
-  const session = await getSession({ req });
+export const getServerSideProps = async ({ req, res }: GetServerSidePropsContext) => {
+  const session = await getUserSession(req, res);
   if (!session?.user) return createRedirect("/");
   return { props: {} };
 };
