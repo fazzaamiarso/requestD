@@ -16,7 +16,7 @@ import {
 import { dayjs } from "@/lib/dayjs";
 import NoDataIllustration from "@/assets/no-data.svg";
 import { SubmissionChips } from "@/components/status-chips";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { copyToClipboard } from "@/utils/client-helper";
 import toast, { Toaster } from "react-hot-toast";
 import GoBackButton from "@/components/go-back-button";
@@ -24,6 +24,8 @@ import { SubmissionMeta } from "@/components/submission-meta";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 import { NextSeo } from "next-seo";
 import { Spinner } from "@/components/spinner";
+import { SubmissionStatus } from "@prisma/client";
+import { DialogBase } from "@/components/confirmation-dialog";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -73,21 +75,6 @@ const OwnerSubmissionContent = ({
     { submissionId },
   ]);
 
-  const statusMutation = trpc.useMutation(["submission.set-status"], {
-    onSuccess: () => utils.invalidateQueries(["submission.detail"]),
-  });
-  const isPaused = data?.submission.status === "PAUSED";
-  const isEnded = data?.submission.status === "ENDED";
-  const handleResume = () =>
-    statusMutation.mutate({ status: "ONGOING", submissionId });
-  const handleEnd = () =>
-    statusMutation.mutate(
-      { status: "ENDED", submissionId },
-      { onSuccess: () => utils.invalidateQueries(["submission.tracks"]) }
-    );
-  const handlePause = () =>
-    statusMutation.mutate({ status: "PAUSED", submissionId });
-
   return (
     <>
       <NextSeo title={data?.playlist.name} />
@@ -117,20 +104,10 @@ const OwnerSubmissionContent = ({
               </div>
             </div>
             <div className="ml-auto flex items-center gap-4 sm:gap-8">
-              {isPaused || isEnded ? (
-                <SubmissionButton iconType="play" onClick={handleResume}>
-                  Resume
-                </SubmissionButton>
-              ) : (
-                <SubmissionButton iconType="pause" onClick={handlePause}>
-                  Pause
-                </SubmissionButton>
-              )}
-              {isEnded ? null : (
-                <SubmissionButton iconType="end" onClick={handleEnd}>
-                  End
-                </SubmissionButton>
-              )}
+              <SubmissionControl
+                submissionId={data.submission.id}
+                submissionStatus={data.submission.status}
+              />
 
               <button
                 onClick={() => {
@@ -178,6 +155,64 @@ const OwnerSubmissionContent = ({
 };
 
 export default OwnerSubmission;
+
+const SubmissionControl = ({
+  submissionId,
+  submissionStatus,
+}: {
+  submissionId: string;
+  submissionStatus: SubmissionStatus;
+}) => {
+  const [isOpenDialog, setIsOpenDialog] = useState(false);
+  const utils = trpc.useContext();
+  const statusMutation = trpc.useMutation(["submission.set-status"], {
+    onSuccess: () => utils.invalidateQueries(["submission.detail"]),
+  });
+  const isPaused = submissionStatus === "PAUSED";
+  const isEnded = submissionStatus === "ENDED";
+  const handleResume = () =>
+    statusMutation.mutate({ status: "ONGOING", submissionId });
+  const handleEnd = () =>
+    statusMutation.mutate(
+      { status: "ENDED", submissionId },
+      { onSuccess: () => utils.invalidateQueries(["submission.tracks"]) }
+    );
+  const handlePause = () =>
+    statusMutation.mutate({ status: "PAUSED", submissionId });
+  return (
+    <>
+      {isPaused || isEnded ? (
+        <SubmissionButton iconType="play" onClick={handleResume}>
+          Resume
+        </SubmissionButton>
+      ) : (
+        <SubmissionButton iconType="pause" onClick={handlePause}>
+          Pause
+        </SubmissionButton>
+      )}
+      {isEnded ? null : (
+        <SubmissionButton iconType="end" onClick={() => setIsOpenDialog(true)}>
+          End
+        </SubmissionButton>
+      )}
+      {isOpenDialog && (
+        <DialogBase
+          title={"End Submission?"}
+          onConfirm={handleEnd}
+          onDismiss={() => setIsOpenDialog(false)}
+        >
+          <p className="text-sm text-textBody">
+            Are you sure you want to end this submission?{" "}
+            <span className="font-semibold text-textHeading">
+              The duration and request limit will be resetted
+            </span>
+            . This action cannot be undone, but you can start it again.
+          </p>
+        </DialogBase>
+      )}
+    </>
+  );
+};
 
 type PendingRequestCardProps = {
   trackImage: string | undefined;
@@ -255,6 +290,8 @@ const PendingRequestCard = ({
     </li>
   );
 };
+
+
 
 const submissionButtonIcons = {
   pause: PauseIcon,

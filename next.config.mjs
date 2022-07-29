@@ -15,6 +15,6 @@ function defineNextConfig(config) {
 export default defineNextConfig({
   reactStrictMode: true,
   images: {
-    domains: ["i.scdn.co"],
+    domains: ["i.scdn.co", "request-d.vercel.app"],
   },
 });
