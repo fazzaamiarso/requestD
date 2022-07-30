@@ -37,12 +37,15 @@ export const getServerSideProps = async ({
   });
   if (!submission) return createRedirect("/404");
 
-  const playlistDetail = await getPlaylistDetail(submission.spotifyPlaylistId);
-  if (!playlistDetail) {
-    await prisma.submission.delete({
-      where: { id: submission.id },
-    });
-    return createRedirect("/404");
+  let playlistDetail;
+  if (submission.type === "PLAYLIST") {
+    playlistDetail = await getPlaylistDetail(submission.spotifyPlaylistId);
+    if (!playlistDetail) {
+      await prisma.submission.delete({
+        where: { id: submission.id },
+      });
+      return createRedirect("/404");
+    }
   }
 
   const userProfile = await getPublicUserProfile(submission.spotifyUserId);
@@ -75,7 +78,8 @@ export const getServerSideProps = async ({
   return {
     props: {
       submission,
-      playlist: { ownerProfile: userProfile, playlistDetail },
+      playlist: playlistDetail ?? null,
+      ownerProfile: userProfile,
       requestsLeft,
     },
   };
@@ -85,6 +89,7 @@ const Submission = ({
   submission,
   playlist,
   requestsLeft,
+  ownerProfile,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
   if (requestsLeft && requestsLeft <= 0)
     return (
@@ -113,6 +118,7 @@ const Submission = ({
       submission={submission}
       requestsLeft={requestsLeft}
       playlist={playlist}
+      ownerProfile={ownerProfile}
     />
   );
 };
@@ -128,10 +134,12 @@ const SubmissionContent = ({
   submission,
   requestsLeft,
   playlist,
+  ownerProfile,
 }: {
   submission: Submission;
   requestsLeft: number | null;
-  playlist: { ownerProfile: SpotifyUser; playlistDetail: SpotifyPlaylist };
+  playlist: SpotifyPlaylist | null;
+  ownerProfile: SpotifyUser;
 }) => {
   const router = useRouter();
   const mutation = trpc.useMutation(["request.search"]);
@@ -155,16 +163,20 @@ const SubmissionContent = ({
   return (
     <>
       <NextSeo
-        title={playlist.playlistDetail.name}
-        description={`🎼 Give your song recommendation to ${playlist.ownerProfile.display_name}`}
+        title={
+          (submission.type === "PLAYLIST"
+            ? playlist?.name
+            : submission.queueName) ?? ""
+        }
+        description={`🎼 Give your song recommendation to ${ownerProfile.display_name}`}
       />
       <Toaster />
       <header className="mx-auto my-8 w-10/12 max-w-xl">
         <div className="mb-4 flex items-center gap-2 text-sm text-textBody">
-          {playlist.ownerProfile.images[0]?.url ? (
+          {ownerProfile.images[0]?.url ? (
             <Image
-              src={playlist.ownerProfile.images[0]?.url}
-              alt={playlist.ownerProfile.display_name}
+              src={ownerProfile.images[0]?.url}
+              alt={ownerProfile.display_name}
               height={32}
               width={32}
               className="rounded-full"
@@ -174,10 +186,13 @@ const SubmissionContent = ({
               <UserCircleIcon className="h-8" />
             </div>
           )}
-          <p>{`${playlist.ownerProfile.display_name}'s`}</p>
+          <p>{`${ownerProfile.display_name}'s`}</p>
         </div>
         <h1 className="text-2xl font-semibold ">
-          {playlist.playlistDetail.name} Live submission
+          {submission.type === "PLAYLIST"
+            ? playlist?.name
+            : submission.queueName}{" "}
+          Live submission
         </h1>
         <SubmissionMeta Icon={CalendarIcon}>
           {submission.endsAt

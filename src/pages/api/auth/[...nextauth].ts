@@ -27,7 +27,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     SpotifyProvider({
-      authorization: `https://accounts.spotify.com/authorize?scope=user-read-email playlist-modify-public`,
+      authorization: `https://accounts.spotify.com/authorize?scope=user-read-email playlist-modify-public user-modify-playback-state user-read-private`,
       clientId: env.SPOTIFY_CLIENT_ID,
       clientSecret: env.SPOTIFY_CLIENT_SECRET,
       httpOptions: {
