@@ -24,7 +24,7 @@ import { SubmissionMeta } from "@/components/submission-meta";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 import { NextSeo } from "next-seo";
 import { Spinner } from "@/components/spinner";
-import { SubmissionStatus } from "@prisma/client";
+import { SubmissionStatus, SubmissionType } from "@prisma/client";
 import { DialogBase } from "@/components/confirmation-dialog";
 
 const OwnerSubmission = () => {
@@ -60,7 +60,6 @@ const OwnerSubmissionContent = ({
   submissionId: string;
   router: NextRouter;
 }) => {
-  const utils = trpc.useContext();
   const { data, isLoading } = trpc.useQuery(
     ["submission.detail", { submissionId }],
     {
@@ -77,7 +76,13 @@ const OwnerSubmissionContent = ({
 
   return (
     <>
-      <NextSeo title={data?.playlist.name} />
+      <NextSeo
+        title={
+          (data?.submission.type === "PLAYLIST"
+            ? data?.playlist?.name
+            : data?.submission.queueName) ?? ""
+        }
+      />
       <Toaster />
       {isLoading ? (
         <HeaderSkeleton />
@@ -86,8 +91,11 @@ const OwnerSubmissionContent = ({
           <header className="mx-auto mt-6 flex w-11/12 max-w-4xl flex-col  items-start gap-4 md:flex-row md:items-center ">
             <div className="flex flex-col space-y-1">
               <GoBackButton />
-              <h1 className=" flex items-center gap-3 pt-4 text-3xl font-bold">
-                {data.playlist.name}
+              <span className="pt-4 text-xs text-textBody">{`#${data.submission.type}`}</span>
+              <h1 className=" flex items-center gap-3  text-3xl font-bold">
+                {data.submission.type === "QUEUE"
+                  ? data.submission.queueName
+                  : data.playlist?.name}
                 <SubmissionChips status={data.submission.status} />
               </h1>
               <div className="flex items-center gap-2">
@@ -135,13 +143,14 @@ const OwnerSubmissionContent = ({
             trackData.tracks.map((track) => {
               return (
                 <PendingRequestCard
+                  type={data?.submission.type}
                   key={track.requestId}
                   trackImage={track.album.images[0]?.url}
                   trackName={track.name}
                   artist={track.artists[0]?.name ?? ""}
                   requestId={track.requestId}
                   uri={track.uri}
-                  playlistId={data?.playlist.id}
+                  playlistId={data?.playlist?.id}
                 />
               );
             })}
@@ -215,6 +224,7 @@ const SubmissionControl = ({
 };
 
 type PendingRequestCardProps = {
+  type: SubmissionType | undefined;
   trackImage: string | undefined;
   trackName: string;
   artist: string;
@@ -223,6 +233,7 @@ type PendingRequestCardProps = {
   playlistId: string | undefined;
 };
 const PendingRequestCard = ({
+  type,
   trackImage,
   trackName,
   artist,
@@ -231,6 +242,12 @@ const PendingRequestCard = ({
   playlistId,
 }: PendingRequestCardProps) => {
   const utils = trpc.useContext();
+  const addToQueue = trpc.useMutation(["submission.add-to-queue"], {
+    onSuccess: () => {
+      utils.invalidateQueries(["submission.tracks"]);
+      confirmationToast(requestId, "Request added to queue.");
+    },
+  });
   const acceptRequest = trpc.useMutation(["submission.add-to-playlist"], {
     onSuccess: () => {
       utils.invalidateQueries(["submission.tracks"]);
@@ -244,7 +261,7 @@ const PendingRequestCard = ({
     },
   });
 
-  const isAccepting = acceptRequest.isLoading;
+  const isAccepting = acceptRequest.isLoading || addToQueue.isLoading;
   const isRejecting = deleteRequest.isLoading;
   const isBusy = isAccepting || isRejecting;
 
@@ -260,11 +277,15 @@ const PendingRequestCard = ({
       <div className="ml-auto flex items-center gap-4">
         <button
           onClick={() => {
-            if (!playlistId || isBusy) return;
-            acceptRequest.mutate({
-              playlistId,
-              tracksData: [{ requestId, uri }],
-            });
+            if (isBusy) return;
+            if (type === "PLAYLIST") {
+              if (!playlistId) return;
+              return acceptRequest.mutate({
+                playlistId,
+                tracksData: [{ requestId, uri }],
+              });
+            }
+            addToQueue.mutate({ uri, requestId });
           }}
           className="flex items-center gap-1 rounded-sm bg-inputBg p-2 transition-opacity hover:opacity-80"
         >

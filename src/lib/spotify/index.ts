@@ -8,6 +8,7 @@ import {
   trackSchema,
   newReleasesSchema,
   albumSchema,
+  privateProfileSchema,
 } from "./schema";
 
 const client_id = env.SPOTIFY_CLIENT_ID;
@@ -68,7 +69,7 @@ const getMyProfile = async (refresh_token: string) => {
       Authorization: `Bearer ${access_token}`,
     },
   });
-  const profile = profileSchema.parse(await res.json());
+  const profile = privateProfileSchema.parse(await res.json());
   return profile;
 };
 
@@ -244,6 +245,20 @@ const getSeveralAlbums = async (spotifyIds: string[]) => {
   return albums.albums;
 };
 
+const addToQueue = async (refresh_token: string, data: { uri: string }) => {
+  const { access_token } = await getAccessToken(refresh_token);
+  await fetch(`${BASE_ENDPOINT}/me/player/queue`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      uri: data.uri,
+    }),
+  });
+};
+
 export {
   getUsersPlaylists,
   getMyProfile,
@@ -257,4 +272,5 @@ export {
   getNewReleases,
   getSeveralAlbums,
   getPublicUserProfile,
+  addToQueue,
 };

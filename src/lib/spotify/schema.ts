@@ -28,6 +28,10 @@ export const profileSchema = z.object({
   images: z.array(imageSchema),
 });
 
+export const privateProfileSchema = profileSchema.extend({
+  product: z.enum(["free", "premium", "open"]),
+});
+
 export const trackSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -60,4 +64,5 @@ export const newReleasesSchema = z.object({
 });
 
 export type SpotifyUser = z.infer<typeof profileSchema>;
+export type SpotifyPrivateUser = z.infer<typeof privateProfileSchema>;
 export type SpotifyPlaylist = z.infer<typeof playlistSchema>;

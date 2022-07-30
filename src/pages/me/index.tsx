@@ -119,7 +119,13 @@ const AdminDashboard = () => {
           {!isLoading &&
             data &&
             data.playlists.map(({ playlist, submission }) => {
-              if (!playlist || !submission) return null;
+              const isPlaylistExist =
+                submission?.type === "PLAYLIST" && Boolean(playlist);
+              if (
+                !submission ||
+                (!isPlaylistExist && submission.type !== "QUEUE")
+              )
+                return null;
               return (
                 <SubmissionCard
                   key={submission.id}
@@ -144,9 +150,7 @@ type SubmissionCardProps = {
   submission: NonNullable<
     inferQueryOutput<"submission.all">["playlists"][0]["submission"]
   >;
-  playlist: NonNullable<
-    inferQueryOutput<"submission.all">["playlists"][0]["playlist"]
-  >;
+  playlist: inferQueryOutput<"submission.all">["playlists"][0]["playlist"];
   onDelete: (input: { submissionId: string; playlistName: string }) => void;
 };
 
@@ -159,21 +163,23 @@ const SubmissionCard = ({
 
   const handleCopyLink = () => {
     copyToClipboard(`${location.origin}/submission/${submission.id}`);
-    copyToast(playlist.id);
+    copyToast(submission.id);
   };
 
   const handleDelete = () => {
     setIsOpenDialog(false);
     onDelete({
       submissionId: submission.id,
-      playlistName: playlist.name,
+      playlistName: playlist?.name ?? submission.queueName ?? "",
     });
   };
   return (
     <li className="flex flex-col items-start rounded-md  bg-cardBg p-4 px-6 sm:flex-row sm:items-center">
       <div className="flex flex-col">
         <SubmissionChips status={submission.status} className="mb-1 p-0" />
-        <h2 className="text-xl font-semibold">{playlist.name}</h2>
+        <h2 className="text-xl font-semibold">
+          {playlist?.name ?? submission.queueName}
+        </h2>
         <p className="text-xs text-textBody">
           {dayjs(submission.createdAt).fromNow()}
         </p>
@@ -193,7 +199,7 @@ const SubmissionCard = ({
       </div>
       {isOpenDialog && (
         <DialogBase
-          title={`Delete ${playlist.name}?`}
+          title={`Delete ${playlist?.name ?? submission.queueName}?`}
           onConfirm={handleDelete}
           onDismiss={() => setIsOpenDialog(false)}
         >

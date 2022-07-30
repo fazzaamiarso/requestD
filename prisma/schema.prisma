@@ -24,12 +24,19 @@ enum SubmissionStatus {
     PAUSED
 }
 
+enum SubmissionType {
+    PLAYLIST
+    QUEUE
+}
+
 model Submission {
     id                 String           @id @default(cuid())
     createdAt          DateTime         @default(now())
     endsAt             DateTime?
     userId             String
-    spotifyUserId       String
+    queueName          String?
+    type               SubmissionType   @default(PLAYLIST)
+    spotifyUserId      String
     spotifyPlaylistId  String
     maxTrackLimit      Int?
     personRequestLimit Int?

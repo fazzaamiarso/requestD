@@ -1,6 +1,7 @@
-import { SubmissionStatus } from "@prisma/client";
+import { SubmissionStatus, SubmissionType } from "@prisma/client";
 import { z } from "zod";
 import {
+  addToQueue,
   addTracksToPlaylist,
   createPlaylist,
   getMyProfile,
@@ -15,15 +16,14 @@ const submissionRouter = createProtectedRouter()
     async resolve({ ctx }) {
       const submission = await ctx.prisma.submission.findMany({
         where: { userId: ctx.session.user.id },
-        select: {
-          spotifyPlaylistId: true,
-          id: true,
-          createdAt: true,
-          status: true,
-        },
       });
       const playlists = await Promise.all(
         submission.map(async (s) => {
+          if (s.type === "QUEUE") {
+            return {
+              submission: s,
+            };
+          }
           const playlistDetail = await getPlaylistDetail(s.spotifyPlaylistId);
           if (!playlistDetail) {
             await ctx.prisma.submission.delete({
@@ -32,7 +32,7 @@ const submissionRouter = createProtectedRouter()
             return {};
           }
           return {
-            submission: { id: s.id, createdAt: s.createdAt, status: s.status },
+            submission: s,
             playlist: playlistDetail,
           };
         })
@@ -55,14 +55,19 @@ const submissionRouter = createProtectedRouter()
         where: { id: input.submissionId },
       });
       if (!submission) throw Error("No submission found!");
-      const playlist = await getPlaylistDetail(submission.spotifyPlaylistId);
-      if (!playlist) {
-        await ctx.prisma.submission.delete({
-          where: { id: submission.id },
-        });
-        throw Error("No playlist found! Potentially deleted by the owner");
+      if (submission.type === "PLAYLIST") {
+        const playlist = await getPlaylistDetail(submission.spotifyPlaylistId);
+        if (!playlist) {
+          await ctx.prisma.submission.delete({
+            where: { id: submission.id },
+          });
+          throw Error("No playlist found! Potentially deleted by the owner");
+        }
+        return { submission, playlist };
       }
-      return { submission, playlist };
+      return {
+        submission,
+      };
     },
   })
   .query("tracks", {
@@ -86,13 +91,19 @@ const submissionRouter = createProtectedRouter()
       title: z.string(),
       requestLimit: z.string().nullish(),
       duration: z.string().nullish(),
+      type: z.nativeEnum(SubmissionType),
     }),
     async resolve({ ctx, input }) {
-      const { createdPlaylist, userSpotifyId } = await createPlaylist(
-        ctx.session.access_token,
-        input.title
-      );
-
+      let createdPlaylist:
+        | Awaited<ReturnType<typeof createPlaylist>>
+        | undefined;
+      if (input.type === "PLAYLIST") {
+        createdPlaylist = await createPlaylist(
+          ctx.session.access_token,
+          input.title
+        );
+      }
+      const { id } = await getMyProfile(ctx.session.access_token);
       const createdAt = dayjs().toDate();
       const endsAt =
         input.duration && dayjs().add(Number(input.duration), "hours").toDate();
@@ -102,12 +113,14 @@ const submissionRouter = createProtectedRouter()
 
       const submission = await ctx.prisma.submission.create({
         data: {
-          spotifyUserId: userSpotifyId,
+          type: input.type,
+          queueName: input.title,
+          spotifyUserId: id,
           createdAt,
           endsAt,
           personRequestLimit: requestLimit,
           userId: ctx.session.user.id,
-          spotifyPlaylistId: createdPlaylist.id,
+          spotifyPlaylistId: createdPlaylist?.createdPlaylist.id ?? "",
         },
       });
       return { submissionId: submission.id };
@@ -197,6 +210,21 @@ const submissionRouter = createProtectedRouter()
     async resolve({ ctx, input }) {
       await ctx.prisma.submission.delete({
         where: { id: input.submissionId },
+      });
+    },
+  })
+  .mutation("add-to-queue", {
+    input: z.object({
+      uri: z.string(),
+      requestId: z.string(),
+    }),
+    async resolve({ ctx, input }) {
+      await addToQueue(ctx.session.access_token, { uri: input.uri });
+      await ctx.prisma.requestedTrack.update({
+        where: { id: input.requestId },
+        data: {
+          status: "ACCEPTED",
+        },
       });
     },
   });
