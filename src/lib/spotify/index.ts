@@ -247,17 +247,18 @@ const getSeveralAlbums = async (spotifyIds: string[]) => {
 
 const addToQueue = async (refresh_token: string, data: { uri: string }) => {
   const { access_token } = await getAccessToken(refresh_token);
-  await fetch(`${BASE_ENDPOINT}/me/player/queue`, {
+  const searchQuery = new URLSearchParams({
+    uri: data.uri,
+  });
+  const res = await fetch(`${BASE_ENDPOINT}/me/player/queue?${searchQuery}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${access_token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      uri: data.uri,
-    }),
   });
-};
+  //TODO: check for availabale active device first, before user can hit this endpoint maybe?
+};;
 
 export {
   getUsersPlaylists,
