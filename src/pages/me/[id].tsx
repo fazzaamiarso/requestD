@@ -4,6 +4,7 @@ import { trpc } from "@/utils/trpc";
 import {
   CalendarIcon,
   CheckIcon,
+  RefreshIcon,
   TicketIcon,
   XIcon,
 } from "@heroicons/react/solid";
@@ -16,7 +17,7 @@ import {
 import { dayjs } from "@/lib/dayjs";
 import NoDataIllustration from "@/assets/no-data.svg";
 import { SubmissionChips } from "@/components/status-chips";
-import { ReactNode, useState } from "react";
+import { ReactNode, useCallback, useState } from "react";
 import { copyToClipboard } from "@/utils/client-helper";
 import toast, { Toaster } from "react-hot-toast";
 import GoBackButton from "@/components/go-back-button";
@@ -26,6 +27,7 @@ import { NextSeo } from "next-seo";
 import { Spinner } from "@/components/spinner";
 import { SubmissionStatus, SubmissionType } from "@prisma/client";
 import { DialogBase } from "@/components/confirmation-dialog";
+import throttle from "lodash.throttle";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -69,10 +71,21 @@ const OwnerSubmissionContent = ({
     }
   );
 
-  const { data: trackData, isLoading: isTrackLoading } = trpc.useQuery([
-    "submission.tracks",
-    { submissionId },
-  ]);
+  const {
+    data: trackData,
+    isLoading: isTrackLoading,
+    refetch,
+    isRefetching,
+  } = trpc.useQuery(["submission.tracks", { submissionId }]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const refreshTracks = useCallback(
+    throttle(() => {
+      if (isRefetching) return;
+      refetch();
+    }, 3000),
+    [refetch]
+  );
 
   return (
     <>
@@ -134,7 +147,19 @@ const OwnerSubmissionContent = ({
         )
       )}
       <main className="mx-auto my-12 min-h-screen w-11/12 max-w-4xl">
-        <h2 className="mb-4 text-xl font-bold">Pending Requests</h2>
+        <div className="flex w-full items-center justify-between">
+          <h2 className="mb-4 text-xl font-bold">Pending Requests</h2>
+          <button
+            type="button"
+            className="flex items-center gap-1   text-materialPurple-200"
+            onClick={() => refreshTracks()}
+          >
+            <RefreshIcon
+              className={`h-4 ${isRefetching ? "animate-spin" : ""}`}
+            />
+            <span>refresh</span>
+          </button>
+        </div>
         <div className="h-px w-full bg-cardBg" />
         {!isTrackLoading && !trackData?.tracks.length && <EmptyState />}
         {isTrackLoading && <CardSkeleton />}
@@ -177,17 +202,27 @@ const SubmissionControl = ({
   const statusMutation = trpc.useMutation(["submission.set-status"], {
     onSuccess: () => utils.invalidateQueries(["submission.detail"]),
   });
-  const isPaused = submissionStatus === "PAUSED";
-  const isEnded = submissionStatus === "ENDED";
-  const handleResume = () =>
+
+  const handleResume = () => {
+    if (isBusy) return;
     statusMutation.mutate({ status: "ONGOING", submissionId });
-  const handleEnd = () =>
+  };
+  const handleEnd = () => {
+    if (isBusy) return;
     statusMutation.mutate(
       { status: "ENDED", submissionId },
       { onSuccess: () => utils.invalidateQueries(["submission.tracks"]) }
     );
-  const handlePause = () =>
+  };
+  const handlePause = () => {
+    if (isBusy) return;
     statusMutation.mutate({ status: "PAUSED", submissionId });
+  };
+
+  const isPaused = submissionStatus === "PAUSED";
+  const isEnded = submissionStatus === "ENDED";
+  const isBusy = statusMutation.isLoading;
+
   return (
     <>
       {isPaused || isEnded ? (
