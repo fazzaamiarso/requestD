@@ -17,7 +17,7 @@ import {
 import { dayjs } from "@/lib/dayjs";
 import NoDataIllustration from "@/assets/no-data.svg";
 import { SubmissionChips } from "@/components/status-chips";
-import { ReactNode, useCallback, useState } from "react";
+import { ReactNode, RefObject, useCallback, useState } from "react";
 import { copyToClipboard } from "@/utils/client-helper";
 import toast, { Toaster } from "react-hot-toast";
 import GoBackButton from "@/components/go-back-button";
@@ -28,6 +28,7 @@ import { Spinner } from "@/components/spinner";
 import { SubmissionStatus, SubmissionType } from "@prisma/client";
 import { DialogBase } from "@/components/confirmation-dialog";
 import throttle from "lodash.throttle";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -62,6 +63,7 @@ const OwnerSubmissionContent = ({
   submissionId: string;
   router: NextRouter;
 }) => {
+  const [parent] = useAutoAnimate();
   const { data, isLoading } = trpc.useQuery(
     ["submission.detail", { submissionId }],
     {
@@ -163,7 +165,10 @@ const OwnerSubmissionContent = ({
         <div className="h-px w-full bg-cardBg" />
         {!isTrackLoading && !trackData?.tracks.length && <EmptyState />}
         {isTrackLoading && <CardSkeleton />}
-        <ul className="my-8 space-y-4 empty:hidden">
+        <ul
+          ref={parent as RefObject<HTMLUListElement>}
+          className="my-8 space-y-4 empty:hidden"
+        >
           {trackData &&
             trackData.tracks.map((track) => {
               return (

@@ -18,11 +18,15 @@ import { LoadingSpinner } from "@/components/lottie";
 import { copyToClipboard } from "@/utils/client-helper";
 import toast, { Toaster } from "react-hot-toast";
 import { DialogBase } from "@/components/confirmation-dialog";
-import { useState } from "react";
+import { RefObject, useState } from "react";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 import { NextSeo } from "next-seo";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
-export const getServerSideProps = async ({ req, res }: GetServerSidePropsContext) => {
+export const getServerSideProps = async ({
+  req,
+  res,
+}: GetServerSidePropsContext) => {
   const session = await getUserSession(req, res);
   if (!session?.user) return createRedirect("/");
   return { props: {} };
@@ -43,6 +47,7 @@ const deleteToast = (toastId: string, playlistName: string) =>
   });
 
 const AdminDashboard = () => {
+  const [parent] = useAutoAnimate();
   const utils = trpc.useContext();
   const { data: profile } = trpc.useQuery(["submission.my-profile"]);
   const { data, isLoading } = trpc.useQuery(["submission.all"]);
@@ -115,7 +120,10 @@ const AdminDashboard = () => {
             <LoadingSpinner />
           </div>
         )}
-        <ul className="mt-10 grid grid-cols-1 gap-4  empty:hidden lg:grid-cols-2">
+        <ul
+          ref={parent as RefObject<HTMLUListElement>}
+          className="mt-10 grid grid-cols-1 gap-4  empty:hidden lg:grid-cols-2"
+        >
           {!isLoading &&
             data &&
             data.playlists.map(({ playlist, submission }) => {
