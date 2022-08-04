@@ -22,8 +22,12 @@ Create a `.env` file with the content from `.env.example`
 $ npm run dev
 ```
 ## Improvements
-- [ ] Add pending ui to some interactions.
-- [ ] Next-auth callback behave weirdly on some device, but still able to login.  
+- [x] Add pending ui to some interactions.
+- [x] Next-auth callback behave weirdly on some device, but still able to login.
+- [ ] Implement better error-handling on Spotify lib with Zod.
+- [ ] Refactor TRPC routes because it just a mess.
+- [ ] Why initial SSR loading feel so slow?
+- [ ] Cleanup UI for some pages
 
 ## Contributing
 Feel free to file an issue or open a pull request.
