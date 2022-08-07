@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  getNewReleases,
-  getSeveralAlbums,
-  searchTracks,
-} from "../../lib/spotify";
+import { getNewReleases, getSeveralAlbums, searchTracks } from "@/lib/spotify";
 import { createRouter } from "./context";
 
 const requestRouter = createRouter()
@@ -11,7 +7,7 @@ const requestRouter = createRouter()
     input: z.object({
       searchQuery: z.string(),
     }),
-    async resolve({ ctx, input }) {
+    async resolve({ input }) {
       const search = await searchTracks(input.searchQuery);
       const res = search.tracks.items;
 

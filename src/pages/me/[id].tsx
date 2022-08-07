@@ -19,7 +19,7 @@ import NoDataIllustration from "@/assets/no-data.svg";
 import { SubmissionChips } from "@/components/status-chips";
 import { ReactNode, RefObject, useCallback, useState } from "react";
 import { copyToClipboard } from "@/utils/client-helper";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import GoBackButton from "@/components/go-back-button";
 import { SubmissionMeta } from "@/components/submission-meta";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
@@ -98,7 +98,6 @@ const OwnerSubmissionContent = ({
             : data?.submission.queueName) ?? ""
         }
       />
-      <Toaster />
       {isLoading ? (
         <HeaderSkeleton />
       ) : (

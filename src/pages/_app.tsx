@@ -7,6 +7,7 @@ import { SessionProvider } from "next-auth/react";
 import "../styles/globals.css";
 import { DefaultSeo } from "next-seo";
 import Head from "next/head";
+import { Toaster } from "react-hot-toast";
 
 const MyApp: AppType = ({
   Component,
@@ -59,6 +60,7 @@ const MyApp: AppType = ({
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5" />
         <meta name="theme-color" content="#ffffff" />
       </Head>
+      <Toaster />
       <Component {...pageProps} />
     </SessionProvider>
   );
@@ -76,6 +78,7 @@ const getBaseUrl = () => {
 export default withTRPC<AppRouter>({
   config({ ctx }) {
     /**
+     *
      * If you want to use SSR, you need to use the server's full URL
      * @link https://trpc.io/docs/ssr
      */

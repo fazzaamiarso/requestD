@@ -16,7 +16,7 @@ import { dayjs } from "@/lib/dayjs";
 import { Submission } from "@prisma/client";
 import { SubmissionEnded } from "@/components/lottie";
 import DoneIllustration from "@/assets/done.svg";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { getPlaylistDetail, getPublicUserProfile } from "@/lib/spotify";
 import { SpotifyPlaylist, SpotifyUser } from "@/lib/spotify/schema";
 import { SubmissionMeta } from "@/components/submission-meta";
@@ -170,7 +170,6 @@ const SubmissionContent = ({
         }
         description={`🎼 Give your song recommendation to ${ownerProfile.display_name}`}
       />
-      <Toaster />
       <header className="mx-auto my-8 w-10/12 max-w-xl">
         <div className="mb-4 flex items-center gap-2 text-sm text-textBody">
           {ownerProfile.images[0]?.url ? (

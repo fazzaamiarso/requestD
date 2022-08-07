@@ -16,7 +16,7 @@ import EmptyIllustration from "@/assets/sub-empty.svg";
 
 import { LoadingSpinner } from "@/components/lottie";
 import { copyToClipboard } from "@/utils/client-helper";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { DialogBase } from "@/components/confirmation-dialog";
 import { RefObject, useState } from "react";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
@@ -75,7 +75,6 @@ const AdminDashboard = () => {
   return (
     <>
       <NextSeo title="Dashboard" />
-      <Toaster />
       <header className="mb-20 bg-[#262627] py-6">
         <div className=" mx-auto flex w-10/12 items-center ">
           <div className="flex items-center gap-4">
@@ -126,19 +125,19 @@ const AdminDashboard = () => {
         >
           {!isLoading &&
             data &&
-            data.playlists.map(({ playlist, submission }) => {
-              const isPlaylistExist =
-                submission?.type === "PLAYLIST" && Boolean(playlist);
+            data.playlists.map((detail) => {
+              if (!detail) return;
               if (
-                !submission ||
-                (!isPlaylistExist && submission.type !== "QUEUE")
+                detail.submission.type === "PLAYLIST" &&
+                !Boolean(detail.playlist)
               )
-                return null;
+                return;
+
               return (
                 <SubmissionCard
-                  key={submission.id}
-                  submission={submission}
-                  playlist={playlist}
+                  key={detail.submission.id}
+                  submission={detail.submission}
+                  playlist={detail.playlist}
                   onDelete={handleDeleteSubmission}
                 />
               );
@@ -156,9 +155,11 @@ export default AdminDashboard;
 
 type SubmissionCardProps = {
   submission: NonNullable<
-    inferQueryOutput<"submission.all">["playlists"][0]["submission"]
-  >;
-  playlist: inferQueryOutput<"submission.all">["playlists"][0]["playlist"];
+    inferQueryOutput<"submission.all">["playlists"][0]
+  >["submission"];
+  playlist: NonNullable<
+    inferQueryOutput<"submission.all">["playlists"][0]
+  >["playlist"];
   onDelete: (input: { submissionId: string; playlistName: string }) => void;
 };
 
