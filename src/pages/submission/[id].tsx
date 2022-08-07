@@ -1,7 +1,6 @@
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
 import { useRouter } from "next/router";
 import { inferMutationInput, trpc } from "@/utils/trpc";
-import { prisma } from "../../server/db/client";
 import { createRedirect, getUserSession } from "@/utils/server-helper";
 import {
   CalendarIcon,
@@ -13,17 +12,18 @@ import Image from "next/image";
 import { InboxInIcon } from "@heroicons/react/outline";
 import musicIllustration from "@/assets/happy-music.svg";
 import { dayjs } from "@/lib/dayjs";
-import { Submission } from "@prisma/client";
 import { SubmissionEnded } from "@/components/lottie";
 import DoneIllustration from "@/assets/done.svg";
 import toast from "react-hot-toast";
-import { getPlaylistDetail, getPublicUserProfile } from "@/lib/spotify";
-import { SpotifyPlaylist, SpotifyUser } from "@/lib/spotify/schema";
 import { SubmissionMeta } from "@/components/submission-meta";
 import { SearchBySpotify } from "@/components/atrributions/spotify";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 import { NextSeo } from "next-seo";
 import { Spinner } from "@/components/spinner";
+import { createSSGHelpers } from "@trpc/react/ssg";
+import { appRouter } from "server/router";
+import { createContext } from "server/router/context";
+import superjson from "superjson";
 
 export const getServerSideProps = async ({
   params,
@@ -32,65 +32,90 @@ export const getServerSideProps = async ({
 }: GetServerSidePropsContext) => {
   const id = params!.id as string;
   const session = await getUserSession(req, res);
-  let submission = await prisma.submission.findFirst({
-    where: { id },
+
+  const ssg = createSSGHelpers({
+    router: appRouter,
+    ctx: await createContext(),
+    transformer: superjson,
+  });
+
+  let submission = await ssg.fetchQuery("request.submission", {
+    submissionId: id,
   });
   if (!submission) return createRedirect("/404");
 
-  let playlistDetail;
   if (submission.type === "PLAYLIST") {
-    playlistDetail = await getPlaylistDetail(submission.spotifyPlaylistId);
-    if (!playlistDetail) {
-      await prisma.submission.delete({
-        where: { id: submission.id },
-      });
-      return createRedirect("/404");
-    }
+    const playlistDetail = await ssg.fetchQuery("request.playlist", {
+      playlistId: submission.spotifyPlaylistId,
+      submissionId: submission.id,
+    });
+    if (!playlistDetail) return createRedirect("/404");
   }
 
-  const userProfile = await getPublicUserProfile(submission.spotifyUserId);
+  await ssg.fetchQuery("request.owner", {
+    spotifyUserId: submission.spotifyUserId,
+  });
 
-  const isSubmissionOwner = session?.user?.id === submission?.userId;
+  const isSubmissionOwner = session?.user?.id === submission.userId;
   if (isSubmissionOwner) return createRedirect(`/me/${id}`);
 
-  if (
-    submission &&
-    dayjs().isAfter(submission.endsAt) &&
-    submission.status !== "ENDED"
-  ) {
-    submission = await prisma.submission.update({
-      where: { id },
-      data: { status: "ENDED" },
-    });
-  }
+  await ssg.fetchQuery("request.request-count", {
+    submissionId: submission.id,
+  });
 
-  let requestsLeft: number | null = null;
-  if (submission && submission.personRequestLimit) {
-    const submissionToken = req.cookies["submission-token"];
-    const requestCount = await prisma.requestedTrack.count({
-      where: { submissionId: submission.id, request_token: submissionToken },
-    });
-    requestsLeft = submission.personRequestLimit - requestCount;
-  }
-
-  submission = JSON.parse(JSON.stringify(submission));
-  if (!submission) return createRedirect("/404");
   return {
     props: {
-      submission,
-      playlist: playlistDetail ?? null,
-      ownerProfile: userProfile,
-      requestsLeft,
+      trpcState: ssg.dehydrate(),
+      submissionId: submission.id,
     },
   };
 };
 
+const requestSuccessToast = () =>
+  toast("Song request sent!", {
+    duration: 1500,
+  });
+
+type RequestInput = inferMutationInput<"request.request">;
+
 const Submission = ({
-  submission,
-  playlist,
-  requestsLeft,
-  ownerProfile,
+  submissionId,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
+  const router = useRouter();
+
+  const { data: submission } = trpc.useQuery([
+    "request.submission",
+    { submissionId },
+  ]);
+  if (!submission) return null;
+
+  const { data: ownerProfile } = trpc.useQuery([
+    "request.owner",
+    { spotifyUserId: submission.spotifyUserId },
+  ]);
+  const { data: playlist } = trpc.useQuery([
+    "request.playlist",
+    { playlistId: submission.spotifyPlaylistId, submissionId: submission.id },
+  ]);
+
+  const mutation = trpc.useMutation(["request.search"]);
+  const requestMutation = trpc.useMutation(["request.request"], {
+    onSuccess: () => {
+      requestSuccessToast();
+      mutation.reset();
+      router.replace(`/submission/${submission.id}`);
+    },
+  });
+
+  const { data: requestCount } = trpc.useQuery([
+    "request.request-count",
+    { submissionId: submission.id },
+  ]);
+  if (requestCount === undefined) return null;
+  const requestsLeft =
+    submission.personRequestLimit &&
+    submission.personRequestLimit - requestCount;
+
   if (requestsLeft && requestsLeft <= 0)
     return (
       <IllustrationPage
@@ -113,44 +138,6 @@ const Submission = ({
       />
     );
 
-  return (
-    <SubmissionContent
-      submission={submission}
-      requestsLeft={requestsLeft}
-      playlist={playlist}
-      ownerProfile={ownerProfile}
-    />
-  );
-};
-
-const requestSuccessToast = () =>
-  toast("Song request sent!", {
-    duration: 1500,
-  });
-
-type RequestInput = inferMutationInput<"request.request">;
-
-const SubmissionContent = ({
-  submission,
-  requestsLeft,
-  playlist,
-  ownerProfile,
-}: {
-  submission: Submission;
-  requestsLeft: number | null;
-  playlist: SpotifyPlaylist | null;
-  ownerProfile: SpotifyUser;
-}) => {
-  const router = useRouter();
-  const mutation = trpc.useMutation(["request.search"]);
-  const requestMutation = trpc.useMutation(["request.request"], {
-    onSuccess: () => {
-      requestSuccessToast();
-      mutation.reset();
-      router.replace(`/submission/${submission.id}`);
-    },
-  });
-
   const noSearchData = !mutation.data;
   const isSearching = mutation.isLoading;
   const isRequesting = requestMutation.isLoading;
@@ -159,7 +146,6 @@ const SubmissionContent = ({
     if (isRequesting) return;
     requestMutation.mutate({ trackId, submissionId: submission.id });
   };
-
   return (
     <>
       <NextSeo
@@ -168,14 +154,14 @@ const SubmissionContent = ({
             ? playlist?.name
             : submission.queueName) ?? ""
         }
-        description={`🎼 Give your song recommendation to ${ownerProfile.display_name}`}
+        description={`🎼 Give your song recommendation to ${ownerProfile?.display_name}`}
       />
       <header className="mx-auto my-8 w-10/12 max-w-xl">
         <div className="mb-4 flex items-center gap-2 text-sm text-textBody">
-          {ownerProfile.images[0]?.url ? (
+          {ownerProfile?.images[0]?.url ? (
             <Image
-              src={ownerProfile.images[0]?.url}
-              alt={ownerProfile.display_name}
+              src={ownerProfile?.images[0]?.url}
+              alt={ownerProfile?.display_name}
               height={32}
               width={32}
               className="rounded-full"
@@ -185,7 +171,7 @@ const SubmissionContent = ({
               <UserCircleIcon className="h-8" />
             </div>
           )}
-          <p>{`${ownerProfile.display_name}'s`}</p>
+          <p>{`${ownerProfile?.display_name}'s`}</p>
         </div>
         <h1 className="text-2xl font-semibold ">
           {submission.type === "PLAYLIST"

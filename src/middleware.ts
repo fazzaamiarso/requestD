@@ -12,7 +12,6 @@ export default withAuth(
     const randomToken = nanoid();
     const response = NextResponse.next();
     response.cookies.set("submission-token", randomToken, { sameSite: "lax" });
-
     return response;
   },
   {
