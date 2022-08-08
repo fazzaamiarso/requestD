@@ -90,12 +90,12 @@ const requestRouter = createRouter()
     },
   })
   .query("request-count", {
-    input: z.object({ submissionId: z.string() }),
+    input: z.object({ submissionId: z.string(), request_token: z.string() }),
     async resolve({ ctx, input }) {
       const requestCount = await ctx.prisma.requestedTrack.count({
         where: {
           submissionId: input.submissionId,
-          request_token: ctx.submissionToken,
+          request_token: input.request_token,
         },
       });
       return requestCount;

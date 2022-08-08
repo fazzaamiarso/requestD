@@ -29,6 +29,7 @@ import { SubmissionStatus, SubmissionType } from "@prisma/client";
 import { DialogBase } from "@/components/confirmation-dialog";
 import throttle from "lodash.throttle";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { CardSkeleton } from "@/components/skeletons";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -351,8 +352,6 @@ const PendingRequestCard = ({
   );
 };
 
-
-
 const submissionButtonIcons = {
   pause: PauseIcon,
   play: PlayIcon,
@@ -405,15 +404,3 @@ const HeaderSkeleton = () => {
   );
 };
 
-const CardSkeleton = () => {
-  return (
-    <div className="mt-8 animate-pulse space-y-4">
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-    </div>
-  );
-};

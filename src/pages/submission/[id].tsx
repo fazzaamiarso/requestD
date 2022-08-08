@@ -1,5 +1,4 @@
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
-import { useRouter } from "next/router";
 import { inferMutationInput, trpc } from "@/utils/trpc";
 import { createRedirect, getUserSession } from "@/utils/server-helper";
 import {
@@ -24,6 +23,8 @@ import { createSSGHelpers } from "@trpc/react/ssg";
 import { appRouter } from "server/router";
 import { createContext } from "server/router/context";
 import superjson from "superjson";
+import { CardSkeleton } from "@/components/skeletons";
+import { ONE_HOUR_IN_MS } from "@/utils/constants";
 
 export const getServerSideProps = async ({
   params,
@@ -51,7 +52,6 @@ export const getServerSideProps = async ({
     });
     if (!playlistDetail) return createRedirect("/404");
   }
-
   await ssg.fetchQuery("request.owner", {
     spotifyUserId: submission.spotifyUserId,
   });
@@ -59,14 +59,18 @@ export const getServerSideProps = async ({
   const isSubmissionOwner = session?.user?.id === submission.userId;
   if (isSubmissionOwner) return createRedirect(`/me/${id}`);
 
+  const submissionToken = req.cookies["submission-token"];
+
   await ssg.fetchQuery("request.request-count", {
     submissionId: submission.id,
+    request_token: submissionToken!,
   });
 
   return {
     props: {
       trpcState: ssg.dehydrate(),
       submissionId: submission.id,
+      request_token: submissionToken,
     },
   };
 };
@@ -80,49 +84,51 @@ type RequestInput = inferMutationInput<"request.request">;
 
 const Submission = ({
   submissionId,
+  request_token,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
-  const router = useRouter();
-
-  const { data: submission } = trpc.useQuery([
-    "request.submission",
-    { submissionId },
-  ]);
+  const { data: submission } = trpc.useQuery(
+    ["request.submission", { submissionId }],
+    { refetchOnWindowFocus: false }
+  );
   if (!submission) return null;
 
-  const { data: ownerProfile } = trpc.useQuery([
-    "request.owner",
-    { spotifyUserId: submission.spotifyUserId },
-  ]);
-  const { data: playlist } = trpc.useQuery([
-    "request.playlist",
-    { playlistId: submission.spotifyPlaylistId, submissionId: submission.id },
-  ]);
+  const { data: ownerProfile } = trpc.useQuery(
+    ["request.owner", { spotifyUserId: submission.spotifyUserId }],
+    { refetchOnWindowFocus: false }
+  );
+  const { data: playlist } = trpc.useQuery(
+    [
+      "request.playlist",
+      { playlistId: submission.spotifyPlaylistId, submissionId: submission.id },
+    ],
+    { refetchOnWindowFocus: false }
+  );
 
   const mutation = trpc.useMutation(["request.search"]);
+
+  const { data: requestCount, refetch } = trpc.useQuery(
+    [
+      "request.request-count",
+      { submissionId: submission.id, request_token: request_token! },
+    ],
+    { refetchOnWindowFocus: false }
+  );
+
   const requestMutation = trpc.useMutation(["request.request"], {
     onSuccess: () => {
       requestSuccessToast();
       mutation.reset();
-      router.replace(`/submission/${submission.id}`);
+      refetch();
     },
   });
 
-  const { data: requestCount } = trpc.useQuery([
-    "request.request-count",
-    { submissionId: submission.id },
-  ]);
   if (requestCount === undefined) return null;
+
   const requestsLeft =
-    submission.personRequestLimit &&
+    submission.personRequestLimit !== null &&
+    requestCount !== null &&
     submission.personRequestLimit - requestCount;
 
-  if (requestsLeft && requestsLeft <= 0)
-    return (
-      <IllustrationPage
-        illustration={DoneIllustration}
-        message="You have used all of your requests."
-      />
-    );
   if (submission.status === "ENDED")
     return (
       <EndedPage
@@ -135,6 +141,13 @@ const Submission = ({
       <EndedPage
         LottieComponent={SubmissionEnded}
         message="Submission has been paused by the owner."
+      />
+    );
+  if (requestsLeft !== null && requestsLeft <= 0)
+    return (
+      <IllustrationPage
+        illustration={DoneIllustration}
+        message="You have used all of your requests."
       />
     );
 
@@ -229,7 +242,7 @@ const Submission = ({
               />
               <button
                 type="submit"
-                className="flex items-center gap-1 rounded-md bg-materialPurple-200 p-2 font-semibold text-darkBg"
+                className="flex items-center gap-1 rounded-md bg-materialPurple-200 p-2  text-darkBg"
               >
                 <SearchIcon className="h-5" />
                 <span>{isSearching ? "Searching.." : "Search"}</span>
@@ -237,7 +250,10 @@ const Submission = ({
             </div>
           </form>
         </div>
-        {noSearchData && <NewReleases onRequest={handleRequest} />}
+        {noSearchData && !isSearching && (
+          <NewReleases onRequest={handleRequest} />
+        )}
+        {isSearching && <CardSkeleton />}
         {mutation.data && (
           <ul className="my-6 space-y-4">
             {mutation.data.map((item) => {
@@ -309,12 +325,15 @@ const NewReleases = ({
 }: {
   onRequest: (input: RequestInput["trackId"]) => void;
 }) => {
-  const { data } = trpc.useQuery(["request.recommendations"]);
+  const { data, isLoading } = trpc.useQuery(["request.recommendations"], {
+    staleTime: ONE_HOUR_IN_MS,
+  });
 
   return (
     <div className="mt-8 w-full">
       <h3 className="font-semibold">New Releases</h3>
       <ul className="my-6 space-y-4">
+        {isLoading && <CardSkeleton />}
         {data?.recommendations &&
           data.recommendations.map((item) => {
             return (
