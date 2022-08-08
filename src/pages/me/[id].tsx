@@ -291,6 +291,11 @@ const PendingRequestCard = ({
       utils.invalidateQueries(["submission.tracks"]);
       confirmationToast(requestId, "Request added to queue.");
     },
+    onError() {
+      toast("No active device to queue!", {
+        duration: 1000,
+      });
+    },
   });
   const acceptRequest = trpc.useMutation(["submission.add-to-playlist"], {
     onSuccess: () => {
@@ -308,6 +313,7 @@ const PendingRequestCard = ({
   const isAccepting = acceptRequest.isLoading || addToQueue.isLoading;
   const isRejecting = deleteRequest.isLoading;
   const isBusy = isAccepting || isRejecting;
+
 
   return (
     <li className="flex items-center rounded-md bg-cardBg p-4 ">

@@ -144,7 +144,7 @@ const Submission = ({
         message="Submission has been paused by the owner."
       />
     );
-  if (requestsLeft !== null && requestsLeft <= 0)
+  if (requestsLeft !== null && requestsLeft && requestsLeft <= 0)
     return (
       <IllustrationPage
         illustration={DoneIllustration}
