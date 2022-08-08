@@ -17,9 +17,9 @@ import {
 import { dayjs } from "@/lib/dayjs";
 import NoDataIllustration from "@/assets/no-data.svg";
 import { SubmissionChips } from "@/components/status-chips";
-import { ReactNode, useCallback, useState } from "react";
+import { ReactNode, RefObject, useCallback, useState } from "react";
 import { copyToClipboard } from "@/utils/client-helper";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import GoBackButton from "@/components/go-back-button";
 import { SubmissionMeta } from "@/components/submission-meta";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
@@ -28,6 +28,9 @@ import { Spinner } from "@/components/spinner";
 import { SubmissionStatus, SubmissionType } from "@prisma/client";
 import { DialogBase } from "@/components/confirmation-dialog";
 import throttle from "lodash.throttle";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { CardSkeleton } from "@/components/skeletons";
+import { ONE_MINUTE_IN_MS } from "@/utils/constants";
 
 const OwnerSubmission = () => {
   const router = useRouter();
@@ -62,12 +65,14 @@ const OwnerSubmissionContent = ({
   submissionId: string;
   router: NextRouter;
 }) => {
+  const [parent] = useAutoAnimate();
   const { data, isLoading } = trpc.useQuery(
     ["submission.detail", { submissionId }],
     {
       onSettled: (data) => {
         if (!data) router.replace("/404");
       },
+      refetchOnWindowFocus: false,
     }
   );
 
@@ -76,7 +81,9 @@ const OwnerSubmissionContent = ({
     isLoading: isTrackLoading,
     refetch,
     isRefetching,
-  } = trpc.useQuery(["submission.tracks", { submissionId }]);
+  } = trpc.useQuery(["submission.tracks", { submissionId }], {
+    refetchOnWindowFocus: false,
+  });
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const refreshTracks = useCallback(
@@ -96,7 +103,6 @@ const OwnerSubmissionContent = ({
             : data?.submission.queueName) ?? ""
         }
       />
-      <Toaster />
       {isLoading ? (
         <HeaderSkeleton />
       ) : (
@@ -163,7 +169,10 @@ const OwnerSubmissionContent = ({
         <div className="h-px w-full bg-cardBg" />
         {!isTrackLoading && !trackData?.tracks.length && <EmptyState />}
         {isTrackLoading && <CardSkeleton />}
-        <ul className="my-8 space-y-4 empty:hidden">
+        <ul
+          ref={parent as RefObject<HTMLUListElement>}
+          className="my-8 space-y-4 empty:hidden"
+        >
           {trackData &&
             trackData.tracks.map((track) => {
               return (
@@ -347,8 +356,6 @@ const PendingRequestCard = ({
   );
 };
 
-
-
 const submissionButtonIcons = {
   pause: PauseIcon,
   play: PlayIcon,
@@ -401,15 +408,3 @@ const HeaderSkeleton = () => {
   );
 };
 
-const CardSkeleton = () => {
-  return (
-    <div className="mt-8 animate-pulse space-y-4">
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-      <div className="h-16 w-full rounded-md bg-inputBg" />
-    </div>
-  );
-};

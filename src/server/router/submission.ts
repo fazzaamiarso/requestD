@@ -29,7 +29,7 @@ const submissionRouter = createProtectedRouter()
             await ctx.prisma.submission.delete({
               where: { id: s.id },
             });
-            return {};
+            return null;
           }
           return {
             submission: s,

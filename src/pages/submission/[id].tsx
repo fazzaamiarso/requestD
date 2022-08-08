@@ -1,7 +1,5 @@
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from "next";
-import { useRouter } from "next/router";
 import { inferMutationInput, trpc } from "@/utils/trpc";
-import { prisma } from "../../server/db/client";
 import { createRedirect, getUserSession } from "@/utils/server-helper";
 import {
   CalendarIcon,
@@ -13,17 +11,20 @@ import Image from "next/image";
 import { InboxInIcon } from "@heroicons/react/outline";
 import musicIllustration from "@/assets/happy-music.svg";
 import { dayjs } from "@/lib/dayjs";
-import { Submission } from "@prisma/client";
 import { SubmissionEnded } from "@/components/lottie";
 import DoneIllustration from "@/assets/done.svg";
-import toast, { Toaster } from "react-hot-toast";
-import { getPlaylistDetail, getPublicUserProfile } from "@/lib/spotify";
-import { SpotifyPlaylist, SpotifyUser } from "@/lib/spotify/schema";
+import toast from "react-hot-toast";
 import { SubmissionMeta } from "@/components/submission-meta";
 import { SearchBySpotify } from "@/components/atrributions/spotify";
 import { FooterAttributions } from "@/components/atrributions/footer-attributions";
 import { NextSeo } from "next-seo";
 import { Spinner } from "@/components/spinner";
+import { createSSGHelpers } from "@trpc/react/ssg";
+import { appRouter } from "server/router";
+import { createContext } from "server/router/context";
+import superjson from "superjson";
+import { CardSkeleton } from "@/components/skeletons";
+import { ONE_HOUR_IN_MS } from "@/utils/constants";
 
 export const getServerSideProps = async ({
   params,
@@ -32,72 +33,103 @@ export const getServerSideProps = async ({
 }: GetServerSidePropsContext) => {
   const id = params!.id as string;
   const session = await getUserSession(req, res);
-  let submission = await prisma.submission.findFirst({
-    where: { id },
+
+  const ssg = createSSGHelpers({
+    router: appRouter,
+    ctx: await createContext(),
+    transformer: superjson,
+  });
+
+  let submission = await ssg.fetchQuery("request.submission", {
+    submissionId: id,
   });
   if (!submission) return createRedirect("/404");
 
-  let playlistDetail;
   if (submission.type === "PLAYLIST") {
-    playlistDetail = await getPlaylistDetail(submission.spotifyPlaylistId);
-    if (!playlistDetail) {
-      await prisma.submission.delete({
-        where: { id: submission.id },
-      });
-      return createRedirect("/404");
-    }
+    const playlistDetail = await ssg.fetchQuery("request.playlist", {
+      playlistId: submission.spotifyPlaylistId,
+      submissionId: submission.id,
+    });
+    if (!playlistDetail) return createRedirect("/404");
   }
+  await ssg.fetchQuery("request.owner", {
+    spotifyUserId: submission.spotifyUserId,
+  });
 
-  const userProfile = await getPublicUserProfile(submission.spotifyUserId);
-
-  const isSubmissionOwner = session?.user?.id === submission?.userId;
+  const isSubmissionOwner = session?.user?.id === submission.userId;
   if (isSubmissionOwner) return createRedirect(`/me/${id}`);
 
-  if (
-    submission &&
-    dayjs().isAfter(submission.endsAt) &&
-    submission.status !== "ENDED"
-  ) {
-    submission = await prisma.submission.update({
-      where: { id },
-      data: { status: "ENDED" },
-    });
-  }
+  const submissionToken = req.cookies["submission-token"];
+  if (!submissionToken) return createRedirect(req.url!); //must redirect to apply cookie
 
-  let requestsLeft: number | null = null;
-  if (submission && submission.personRequestLimit) {
-    const submissionToken = req.cookies["submission-token"];
-    const requestCount = await prisma.requestedTrack.count({
-      where: { submissionId: submission.id, request_token: submissionToken },
-    });
-    requestsLeft = submission.personRequestLimit - requestCount;
-  }
+  await ssg.fetchQuery("request.request-count", {
+    submissionId: submission.id,
+    request_token: submissionToken!,
+  });
 
-  submission = JSON.parse(JSON.stringify(submission));
-  if (!submission) return createRedirect("/404");
   return {
     props: {
-      submission,
-      playlist: playlistDetail ?? null,
-      ownerProfile: userProfile,
-      requestsLeft,
+      trpcState: ssg.dehydrate(),
+      submissionId: submission.id,
+      request_token: submissionToken,
     },
   };
-};
+};;;
+
+const requestSuccessToast = () =>
+  toast("Song request sent!", {
+    duration: 1500,
+  });
+
+type RequestInput = inferMutationInput<"request.request">;
 
 const Submission = ({
-  submission,
-  playlist,
-  requestsLeft,
-  ownerProfile,
+  submissionId,
+  request_token,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
-  if (requestsLeft && requestsLeft <= 0)
-    return (
-      <IllustrationPage
-        illustration={DoneIllustration}
-        message="You have used all of your requests."
-      />
-    );
+  const { data: submission } = trpc.useQuery(
+    ["request.submission", { submissionId }],
+    { refetchOnWindowFocus: false }
+  );
+  if (!submission) return null;
+
+  const { data: ownerProfile } = trpc.useQuery(
+    ["request.owner", { spotifyUserId: submission.spotifyUserId }],
+    { refetchOnWindowFocus: false }
+  );
+  const { data: playlist } = trpc.useQuery(
+    [
+      "request.playlist",
+      { playlistId: submission.spotifyPlaylistId, submissionId: submission.id },
+    ],
+    { refetchOnWindowFocus: false }
+  );
+
+  const mutation = trpc.useMutation(["request.search"]);
+
+  const { data: requestCount, refetch } = trpc.useQuery(
+    [
+      "request.request-count",
+      { submissionId: submission.id, request_token: request_token! },
+    ],
+    { refetchOnWindowFocus: false }
+  );
+
+  const requestMutation = trpc.useMutation(["request.request"], {
+    onSuccess: () => {
+      requestSuccessToast();
+      mutation.reset();
+      refetch();
+    },
+  });
+
+  if (requestCount === undefined) return null;
+
+  const requestsLeft =
+    submission.personRequestLimit !== null &&
+    requestCount !== null &&
+    submission.personRequestLimit - requestCount;
+
   if (submission.status === "ENDED")
     return (
       <EndedPage
@@ -112,44 +144,13 @@ const Submission = ({
         message="Submission has been paused by the owner."
       />
     );
-
-  return (
-    <SubmissionContent
-      submission={submission}
-      requestsLeft={requestsLeft}
-      playlist={playlist}
-      ownerProfile={ownerProfile}
-    />
-  );
-};
-
-const requestSuccessToast = () =>
-  toast("Song request sent!", {
-    duration: 1500,
-  });
-
-type RequestInput = inferMutationInput<"request.request">;
-
-const SubmissionContent = ({
-  submission,
-  requestsLeft,
-  playlist,
-  ownerProfile,
-}: {
-  submission: Submission;
-  requestsLeft: number | null;
-  playlist: SpotifyPlaylist | null;
-  ownerProfile: SpotifyUser;
-}) => {
-  const router = useRouter();
-  const mutation = trpc.useMutation(["request.search"]);
-  const requestMutation = trpc.useMutation(["request.request"], {
-    onSuccess: () => {
-      requestSuccessToast();
-      mutation.reset();
-      router.replace(`/submission/${submission.id}`);
-    },
-  });
+  if (requestsLeft !== null && requestsLeft <= 0)
+    return (
+      <IllustrationPage
+        illustration={DoneIllustration}
+        message="You have used all of your requests."
+      />
+    );
 
   const noSearchData = !mutation.data;
   const isSearching = mutation.isLoading;
@@ -159,7 +160,6 @@ const SubmissionContent = ({
     if (isRequesting) return;
     requestMutation.mutate({ trackId, submissionId: submission.id });
   };
-
   return (
     <>
       <NextSeo
@@ -168,15 +168,14 @@ const SubmissionContent = ({
             ? playlist?.name
             : submission.queueName) ?? ""
         }
-        description={`🎼 Give your song recommendation to ${ownerProfile.display_name}`}
+        description={`🎼 Give your song recommendation to ${ownerProfile?.display_name}`}
       />
-      <Toaster />
       <header className="mx-auto my-8 w-10/12 max-w-xl">
         <div className="mb-4 flex items-center gap-2 text-sm text-textBody">
-          {ownerProfile.images[0]?.url ? (
+          {ownerProfile?.images[0]?.url ? (
             <Image
-              src={ownerProfile.images[0]?.url}
-              alt={ownerProfile.display_name}
+              src={ownerProfile?.images[0]?.url}
+              alt={ownerProfile?.display_name}
               height={32}
               width={32}
               className="rounded-full"
@@ -186,7 +185,7 @@ const SubmissionContent = ({
               <UserCircleIcon className="h-8" />
             </div>
           )}
-          <p>{`${ownerProfile.display_name}'s`}</p>
+          <p>{`${ownerProfile?.display_name}'s`}</p>
         </div>
         <h1 className="text-2xl font-semibold ">
           {submission.type === "PLAYLIST"
@@ -244,7 +243,7 @@ const SubmissionContent = ({
               />
               <button
                 type="submit"
-                className="flex items-center gap-1 rounded-md bg-materialPurple-200 p-2 font-semibold text-darkBg"
+                className="flex items-center gap-1 rounded-md bg-materialPurple-200 p-2  text-darkBg"
               >
                 <SearchIcon className="h-5" />
                 <span>{isSearching ? "Searching.." : "Search"}</span>
@@ -252,7 +251,10 @@ const SubmissionContent = ({
             </div>
           </form>
         </div>
-        {noSearchData && <NewReleases onRequest={handleRequest} />}
+        {noSearchData && !isSearching && (
+          <NewReleases onRequest={handleRequest} />
+        )}
+        {isSearching && <CardSkeleton />}
         {mutation.data && (
           <ul className="my-6 space-y-4">
             {mutation.data.map((item) => {
@@ -324,12 +326,15 @@ const NewReleases = ({
 }: {
   onRequest: (input: RequestInput["trackId"]) => void;
 }) => {
-  const { data } = trpc.useQuery(["request.recommendations"]);
+  const { data, isLoading } = trpc.useQuery(["request.recommendations"], {
+    staleTime: ONE_HOUR_IN_MS,
+  });
 
   return (
     <div className="mt-8 w-full">
       <h3 className="font-semibold">New Releases</h3>
       <ul className="my-6 space-y-4">
+        {isLoading && <CardSkeleton />}
         {data?.recommendations &&
           data.recommendations.map((item) => {
             return (
