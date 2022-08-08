@@ -71,6 +71,7 @@ const OwnerSubmissionContent = ({
       onSettled: (data) => {
         if (!data) router.replace("/404");
       },
+      refetchOnWindowFocus: false,
     }
   );
 
@@ -79,7 +80,9 @@ const OwnerSubmissionContent = ({
     isLoading: isTrackLoading,
     refetch,
     isRefetching,
-  } = trpc.useQuery(["submission.tracks", { submissionId }]);
+  } = trpc.useQuery(["submission.tracks", { submissionId }], {
+    refetchOnWindowFocus: false,
+  });
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const refreshTracks = useCallback(

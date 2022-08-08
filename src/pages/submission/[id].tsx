@@ -60,6 +60,7 @@ export const getServerSideProps = async ({
   if (isSubmissionOwner) return createRedirect(`/me/${id}`);
 
   const submissionToken = req.cookies["submission-token"];
+  if (!submissionToken) return createRedirect(req.url!); //must redirect to apply cookie
 
   await ssg.fetchQuery("request.request-count", {
     submissionId: submission.id,
@@ -73,7 +74,7 @@ export const getServerSideProps = async ({
       request_token: submissionToken,
     },
   };
-};
+};;;
 
 const requestSuccessToast = () =>
   toast("Song request sent!", {
