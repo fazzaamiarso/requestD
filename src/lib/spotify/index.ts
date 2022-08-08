@@ -9,6 +9,7 @@ import {
   newReleasesSchema,
   albumSchema,
   privateProfileSchema,
+  devicesSchema,
 } from "./schema";
 
 const client_id = env.SPOTIFY_CLIENT_ID;
@@ -19,6 +20,13 @@ const TOKEN_ENDPOINT = `https://accounts.spotify.com/api/token`;
 const BASE_ENDPOINT = "https://api.spotify.com/v1";
 const PLAYLISTS_ENDPOINT = `${BASE_ENDPOINT}/me/playlists`;
 const MY_PROFILE_ENDPOINT = `${BASE_ENDPOINT}/me`;
+
+const defaultHeaders = (access_token: string): HeadersInit => {
+  return {
+    Authorization: `Bearer ${access_token}`,
+    "Content-Type": "application/json",
+  };
+};
 
 const getAccessToken = async (refresh_token: string) => {
   const response = await fetch(TOKEN_ENDPOINT, {
@@ -54,9 +62,7 @@ const getPublicAccessToken = async () => {
 const getUsersPlaylists = async (refresh_token: string) => {
   const { access_token } = await getAccessToken(refresh_token);
   const res = await fetch(PLAYLISTS_ENDPOINT, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
+    headers: defaultHeaders(access_token),
   });
   const playlists = playlistsSchema.parse(await res.json());
   return playlists;
@@ -65,9 +71,7 @@ const getUsersPlaylists = async (refresh_token: string) => {
 const getMyProfile = async (refresh_token: string) => {
   const { access_token } = await getAccessToken(refresh_token);
   const res = await fetch(MY_PROFILE_ENDPOINT, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
+    headers: defaultHeaders(access_token),
   });
   const profile = privateProfileSchema.parse(await res.json());
   return profile;
@@ -76,9 +80,7 @@ const getMyProfile = async (refresh_token: string) => {
 const getPublicUserProfile = async (userSpotifyId: string) => {
   const { access_token } = await getPublicAccessToken();
   const res = await fetch(`${BASE_ENDPOINT}/users/${userSpotifyId}`, {
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
+    headers: defaultHeaders(access_token),
   });
   const profile = profileSchema.parse(await res.json());
   return profile;
@@ -89,10 +91,7 @@ const createPlaylist = async (refresh_token: string, title: string) => {
   const user = await getMyProfile(refresh_token);
   const res = await fetch(`${BASE_ENDPOINT}/users/${user.id}/playlists`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-      "Content-Type": "application/json",
-    },
+    headers: defaultHeaders(access_token),
     body: JSON.stringify({
       name: title,
     }),
@@ -105,10 +104,7 @@ const getPlaylistDetail = async (playlistId: string) => {
   const { access_token } = await getPublicAccessToken();
   const res = await fetch(`${BASE_ENDPOINT}/playlists/${playlistId}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-      "Content-Type": "application/json",
-    },
+    headers: defaultHeaders(access_token),
   });
   const playlistDetail = playlistSchema.safeParse(await res.json());
   if (!playlistDetail.success) throw Error(playlistDetail.error.message);
@@ -123,10 +119,7 @@ const searchTracks = async (q: string) => {
   });
   const res = await fetch(`${BASE_ENDPOINT}/search?${searchQuery}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-      "Content-Type": "application/json",
-    },
+    headers: defaultHeaders(access_token),
   });
   const results = searchTracksSchema.parse(await res.json());
   return results;
@@ -142,10 +135,7 @@ const getSeveralTracks = async (spotifyIds: string[]) => {
 
   const res = await fetch(`${BASE_ENDPOINT}/tracks?${searchQuery}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-      "Content-Type": "application/json",
-    },
+    headers: defaultHeaders(access_token),
   });
   const tracks = z
     .object({ tracks: z.array(trackSchema) })
@@ -158,10 +148,7 @@ const getTrack = async (spotifyId: string) => {
 
   const res = await fetch(`${BASE_ENDPOINT}/tracks/${spotifyId}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-      "Content-Type": "application/json",
-    },
+    headers: defaultHeaders(access_token),
   });
   const track = trackSchema.parse(await res.json());
   return track;
@@ -173,10 +160,7 @@ const getTrackRecommendations = async () => {
 
   const res = await fetch(`${BASE_ENDPOINT}/recommendations?${searchQuery}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-      "Content-Type": "application/json",
-    },
+    headers: defaultHeaders(access_token),
   });
 
   const tracks = z
@@ -194,10 +178,7 @@ const addTracksToPlaylist = async (
     `${BASE_ENDPOINT}/playlists/${data.playlistId}/tracks`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-        "Content-Type": "application/json",
-      },
+      headers: defaultHeaders(access_token),
       body: JSON.stringify({
         uris: data.tracksURI,
       }),
@@ -215,10 +196,7 @@ const getNewReleases = async () => {
   const { access_token } = await getPublicAccessToken();
   const res = await fetch(`${BASE_ENDPOINT}/browse/new-releases`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-      "Content-Type": "application/json",
-    },
+    headers: defaultHeaders(access_token),
   });
   const results = newReleasesSchema.parse(await res.json());
 
@@ -232,10 +210,7 @@ const getSeveralAlbums = async (spotifyIds: string[]) => {
 
   const res = await fetch(`${BASE_ENDPOINT}/albums?${searchQuery}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-      "Content-Type": "application/json",
-    },
+    headers: defaultHeaders(access_token),
   });
 
   const albums = z
@@ -250,15 +225,22 @@ const addToQueue = async (refresh_token: string, data: { uri: string }) => {
   const searchQuery = new URLSearchParams({
     uri: data.uri,
   });
-  const res = await fetch(`${BASE_ENDPOINT}/me/player/queue?${searchQuery}`, {
+  await fetch(`${BASE_ENDPOINT}/me/player/queue?${searchQuery}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-      "Content-Type": "application/json",
-    },
+    headers: defaultHeaders(access_token),
   });
-  //TODO: check for availabale active device first, before user can hit this endpoint maybe?
-};;
+};
+
+const getAvailableDevices = async (refresh_token: string) => {
+  const { access_token } = await getAccessToken(refresh_token);
+  const res = await fetch(`${BASE_ENDPOINT}/me/player/devices`, {
+    method: "GET",
+    headers: defaultHeaders(access_token),
+  });
+
+  const devices = devicesSchema.parse(await res.json());
+  return devices.devices;
+};
 
 export {
   getUsersPlaylists,
@@ -274,4 +256,5 @@ export {
   getSeveralAlbums,
   getPublicUserProfile,
   addToQueue,
+  getAvailableDevices,
 };

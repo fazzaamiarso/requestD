@@ -4,6 +4,7 @@ import {
   addToQueue,
   addTracksToPlaylist,
   createPlaylist,
+  getAvailableDevices,
   getMyProfile,
   getPlaylistDetail,
   getTrack,
@@ -219,6 +220,8 @@ const submissionRouter = createProtectedRouter()
       requestId: z.string(),
     }),
     async resolve({ ctx, input }) {
+      const devices = await getAvailableDevices(ctx.session.access_token);
+      if (devices.length === 0) throw Error("No available device"); 
       await addToQueue(ctx.session.access_token, { uri: input.uri });
       await ctx.prisma.requestedTrack.update({
         where: { id: input.requestId },

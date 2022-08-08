@@ -3,11 +3,13 @@ import { createRouter } from "./context";
 import superjson from "superjson";
 import submissionRouter from "./submission";
 import requestRouter from "./request";
+import { spotifyPlayerRouter } from "./spotify-player";
 
 export const appRouter = createRouter()
   .transformer(superjson)
   .merge("submission.", submissionRouter)
-  .merge("request.", requestRouter);
+  .merge("request.", requestRouter)
+  .merge("player.", spotifyPlayerRouter);
  
  
 

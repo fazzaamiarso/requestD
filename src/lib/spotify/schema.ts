@@ -63,6 +63,21 @@ export const newReleasesSchema = z.object({
   }),
 });
 
+const deviceTypes = ["Computer", "Smartphone", "Speaker"] as const;
+export const devicesSchema = z.object({
+  devices: z.array(
+    z.object({
+      id: z.string(),
+      is_active: z.boolean(),
+      is_private_session: z.boolean(),
+      is_restricted: z.boolean(),
+      name: z.string(),
+      type: z.enum(deviceTypes),
+      volume_percent: z.number(),
+    })
+  ),
+});
+
 export type SpotifyUser = z.infer<typeof profileSchema>;
 export type SpotifyPrivateUser = z.infer<typeof privateProfileSchema>;
 export type SpotifyPlaylist = z.infer<typeof playlistSchema>;

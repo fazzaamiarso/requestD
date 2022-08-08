@@ -6,6 +6,14 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "../../../server/db/client";
 import { env } from "../../../server/env.mjs";
 
+const spotifyAuthScopes = [
+  "user-read-email",
+  "playlist-modify-public",
+  "user-modify-playback-state",
+  "user-read-private",
+  "user-read-playback-state",
+];
+
 export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, account, user }) {
@@ -27,7 +35,9 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     SpotifyProvider({
-      authorization: `https://accounts.spotify.com/authorize?scope=user-read-email playlist-modify-public user-modify-playback-state user-read-private`,
+      authorization: `https://accounts.spotify.com/authorize?scope=${spotifyAuthScopes.join(
+        " "
+      )}`,
       clientId: env.SPOTIFY_CLIENT_ID,
       clientSecret: env.SPOTIFY_CLIENT_SECRET,
       httpOptions: {

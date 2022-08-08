@@ -36,21 +36,23 @@ const copyToast = (toastId: string) =>
   toast("Copied link to clipboard", {
     id: toastId,
     duration: 1500,
-    position: "top-center",
   });
 
 const deleteToast = (toastId: string, playlistName: string) =>
   toast(`Submission for ${playlistName} deleted`, {
     id: toastId,
     duration: 2500,
-    position: "top-center",
   });
 
 const AdminDashboard = () => {
   const [parent] = useAutoAnimate();
   const utils = trpc.useContext();
-  const { data: profile } = trpc.useQuery(["submission.my-profile"]);
-  const { data, isLoading } = trpc.useQuery(["submission.all"]);
+  const { data: profile } = trpc.useQuery(["submission.my-profile"], {
+    refetchOnWindowFocus: false,
+  });
+  const { data, isLoading } = trpc.useQuery(["submission.all"], {
+    refetchOnWindowFocus: false,
+  });
   const deleteMutation = trpc.useMutation(["submission.delete"], {
     onSuccess: () => utils.invalidateQueries(["submission.all"]),
   });
