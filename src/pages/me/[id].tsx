@@ -30,6 +30,7 @@ import { DialogBase } from "@/components/confirmation-dialog";
 import throttle from "lodash.throttle";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { CardSkeleton } from "@/components/skeletons";
+import { ONE_MINUTE_IN_MS } from "@/utils/constants";
 
 const OwnerSubmission = () => {
   const router = useRouter();
